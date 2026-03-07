@@ -1,3 +1,5 @@
+import { PaginatedResult } from "./repositories/base.repository";
+
 declare global {
   type Pagination<T> = {
     page?: number;
@@ -23,6 +25,8 @@ declare global {
     timestamp: FirebaseFirestore.Timestamp;
     createdAt: FirebaseFirestore.FieldValue;
   }
+
+  type PaginatedResultWithCount<T> = PaginatedResult<T>;
 }
 
 export {};

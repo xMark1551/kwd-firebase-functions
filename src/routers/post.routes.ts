@@ -18,19 +18,14 @@ import { requireAdmin } from "../middleware/auth";
 import { multipartBusboy } from "../middleware/multipart.busboy";
 
 import { validateParams, validateQuery, validateBody } from "../middleware/validate";
-import {
-  createPostSchema,
-  patchPostSchema,
-  getPaginatedPostSchema,
-  getTotalPostCount,
-} from "../validation/post.schema";
+import { createPostSchema, patchPostSchema, getPaginatedPostSchema, postFilterSchema } from "../validation/post.schema";
 import { idSchema, idsSchema } from "../validation/id.schema";
 
 const router = Router();
 
 // public routes
 router.get("/", validateQuery(getPaginatedPostSchema), getPaginatedPostController);
-router.get("/count", validateQuery(getTotalPostCount), getTotalPostCountController);
+router.get("/count", validateQuery(postFilterSchema), getTotalPostCountController);
 router.get("/archiveCountByMonth", getPostArchiveCountByMonthController);
 router.get("/categoryCount", getPostCategoryCountController);
 router.get("/currentMonthCount", getPostCurrentMonthCountController);
@@ -44,7 +39,7 @@ router.post(
   multipartBusboy({
     maxFiles: 50,
     maxFileSizeBytes: 10 * 1024 * 1024,
-    allowedTypes: ["image/jpeg", "image/png", "image/jpg"],
+    allowedTypes: ["image/jpeg", "image/png", "image/jpg", "video/*"],
   }),
   validateBody(createPostSchema),
   createPostController,

@@ -1,38 +1,33 @@
 // repositories/settings.repository.ts
-import type { Firestore } from "firebase-admin/firestore";
+import { Firestore, Timestamp } from "firebase-admin/firestore";
 import { FirestoreRepository } from "./base.repository";
+
+import { LogCleanupSettings } from "../model/setting.model.schema";
 
 const SETTINGS_COLLECTION = "settings";
 const LOG_CLEANUP_SETTINGS_DOC = "log_cleanup";
 
-// types/settings.types.ts
-export interface LogCleanupSettings {
-  id: string;
-  enabled: boolean;
-  scheduleExpression: string; // Cron expression
-  retentionDays: number;
-  lastRun?: FirebaseFirestore.Timestamp;
-  nextRun?: FirebaseFirestore.Timestamp;
-  batchSize?: number;
-}
-
-export class SettingsRepository extends FirestoreRepository<any> {
+export class SettingsRepository extends FirestoreRepository<LogCleanupSettings> {
   constructor(db: Firestore) {
     super(db, SETTINGS_COLLECTION);
   }
 
+  private defaultSettings = {
+    id: LOG_CLEANUP_SETTINGS_DOC,
+    enabled: true,
+    scheduleExpression: "* * * * *",
+    retentionDays: 0,
+    batchSize: 500,
+    createdAt: Timestamp.now(),
+    updatedAt: Timestamp.now(),
+  };
+
   async getLogCleanupSettings(): Promise<LogCleanupSettings> {
-    const doc = await this.db.collection(SETTINGS_COLLECTION).doc(LOG_CLEANUP_SETTINGS_DOC).get();
+    const doc = await this.col().doc(LOG_CLEANUP_SETTINGS_DOC).get();
 
     if (!doc.exists) {
       // Return defaults if not set
-      return {
-        id: LOG_CLEANUP_SETTINGS_DOC,
-        enabled: true,
-        scheduleExpression: "* * * * *",
-        retentionDays: 0,
-        batchSize: 500,
-      };
+      return this.defaultSettings as LogCleanupSettings;
     }
 
     const data = doc.data();
@@ -49,7 +44,7 @@ export class SettingsRepository extends FirestoreRepository<any> {
 
   async updateLogCleanupSettings(settings: Partial<LogCleanupSettings>): Promise<void> {
     console.log("Updating log cleanup settings with:", settings);
-    await this.db.collection(SETTINGS_COLLECTION).doc(LOG_CLEANUP_SETTINGS_DOC).set(settings, { merge: true });
+    await this.set(LOG_CLEANUP_SETTINGS_DOC, settings, { merge: true });
   }
 
   async updateLastRun(timestamp: FirebaseFirestore.Timestamp): Promise<void> {

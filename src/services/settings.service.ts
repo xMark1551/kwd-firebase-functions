@@ -5,25 +5,53 @@ import { Timestamp } from "firebase-admin/firestore"; // <-- use this
 import cronParser from "cron-parser";
 
 import { SettingsRepository } from "../repositories/settings.repository";
-import type { LogCleanupSettings } from "../repositories/settings.repository";
+import { ActivityLogRepository } from "../repositories/activity.log.repository";
+
+import { LogCleanupSettings } from "../model/setting.model.schema";
+import { CacheService, cacheService } from "../utils/cache";
 
 const settingsRepo = new SettingsRepository(db);
+const logRepo = new ActivityLogRepository(db);
 
-export const getlogCleanupSettings = () => {
-  return settingsRepo.getLogCleanupSettings();
-};
+export class SettingsService {
+  constructor(
+    private readonly settingsRepo: SettingsRepository,
+    private readonly logRepo: ActivityLogRepository,
+    private readonly cache: CacheService,
+    private readonly prefix = "transparency",
+  ) {}
 
-export const updateLogCleanupSettings = (settings: Partial<LogCleanupSettings>) => {
-  // compute nextRun based on scheduleExpression if scheduleExpression is provided
-  if (settings.scheduleExpression) {
-    const interval = cronParser.parse(settings.scheduleExpression, {
-      currentDate: new Date(),
-      tz: "Asia/Manila",
-    });
-
-    const nextRunDate = interval.next().toDate();
-    settings.nextRun = Timestamp.fromDate(nextRunDate); // <-- fixed
+  async invalidateLogCleanupSettingsCache() {
+    await this.cache.invalidatePattern(`${this.prefix}:log-cleanup-settings`);
   }
 
-  return settingsRepo.updateLogCleanupSettings(settings);
-};
+  key(type: string, params?: Record<string, unknown>) {
+    return this.cache.keyBuilder(this.prefix, type, params);
+  }
+
+  async getlogCleanupSettings() {
+    const key = this.key("log-cleanup-settings");
+    return this.cache.cacheAside(key, () => settingsRepo.getLogCleanupSettings());
+  }
+
+  async updateLogCleanupSettings(settings: Partial<LogCleanupSettings>) {
+    // compute nextRun based on scheduleExpression if scheduleExpression is provided
+    if (settings.scheduleExpression) {
+      const interval = cronParser.parse(settings.scheduleExpression, {
+        currentDate: new Date(),
+        tz: "Asia/Manila",
+      });
+
+      const nextRunDate = interval.next().toDate();
+      settings.nextRun = Timestamp.fromDate(nextRunDate); // <-- fixed
+    }
+
+    const result = await settingsRepo.updateLogCleanupSettings(settings);
+
+    await this.invalidateLogCleanupSettingsCache();
+
+    return result;
+  }
+}
+
+export const settingsService = new SettingsService(settingsRepo, logRepo, cacheService);

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { postSchema } from "../model/post.model.schema";
 import { paginationSchema } from "./pagination.schema";
 
 const categorySchema = z.enum([
@@ -14,20 +15,19 @@ const categorySchema = z.enum([
 
 const statusSchema = z.enum(["Published", "Draft"]);
 
-export const postSchema = z.object({
-  id: z.string(),
-  authorId: z.string(),
-  title: z.string(),
-  description: z.string(),
-  category: categorySchema,
-  status: statusSchema,
-  files: z.array(z.string()),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  isFeatured: z.boolean(),
+export type Post = z.infer<typeof postSchema>;
+
+export const cursorSchema = z.object({
+  page: z.coerce.number().int().min(1),
+
+  firstCreatedAt: z.coerce.number(),
+  firstId: z.string(),
+
+  lastCreatedAt: z.coerce.number(),
+  lastId: z.string(),
 });
 
-export type Post = z.infer<typeof postSchema>;
+export type Cursor = z.infer<typeof cursorSchema>;
 
 export const postFilterSchema = z.object({
   category: categorySchema.optional(),
@@ -39,6 +39,7 @@ export const postFilterSchema = z.object({
 export type PostFilter = z.infer<typeof postFilterSchema>;
 
 export const createPostSchema = z.object({
+  authorId: z.string().optional(),
   title: z.string().nonempty("Title is required"),
   category: categorySchema,
   description: z.string().nonempty("Description is required"),
@@ -49,11 +50,15 @@ export const createPostSchema = z.object({
 
 export type CreatePost = z.infer<typeof createPostSchema>;
 
-export const patchPostSchema = postSchema.partial();
+export const patchPostSchema = postSchema
+  .extend({
+    files: z.array(z.string()).transform((arr) => arr.filter((v) => v !== "")), // remove empty strings
+  })
+  .partial();
 export type PatchPost = z.infer<typeof patchPostSchema>;
 
-export const getPaginatedPostSchema = paginationSchema.merge(postFilterSchema);
+export const getPaginatedPostSchema = z.object({
+  ...paginationSchema.shape,
+  filters: postFilterSchema.optional(),
+});
 export type GetPaginatedPostQuery = z.infer<typeof getPaginatedPostSchema>;
-
-export const getTotalPostCount = postFilterSchema;
-export type GetTotalPostCountQuery = z.infer<typeof getTotalPostCount>;

@@ -39,3 +39,11 @@ export const updateCounter = async (
     updatedAt: now,
   });
 };
+
+export const updateCounter2 = async (tx: Transaction, ref: DocumentReference, snap: DocumentSnapshot, data: any) => {
+  if (snap.exists) {
+    tx.update(ref, data);
+  } else {
+    tx.set(ref, data);
+  }
+};

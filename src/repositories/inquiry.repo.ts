@@ -2,37 +2,22 @@ import type { Firestore } from "firebase-admin/firestore";
 import { FirestoreRepository } from "./base.repository";
 
 import { INQUIRY_COLLECTION } from "../const/collection.name";
-import { sendInquiryEmail } from "../utils/emailHelper";
 
-import { deleteFile } from "../storage/deleteFile";
-
-import type { Inquiry, CreateInquiry } from "../types/inquiry.type";
+import { cleanupFiles } from "../storage/deleteFile";
 
 import { Timestamp } from "firebase-admin/firestore";
 
+import { inquirySchema, Inquiry } from "../model/inquiry.model.schema";
+
 export class InquiryRepository extends FirestoreRepository<Inquiry> {
   constructor(db: Firestore) {
-    super(db, INQUIRY_COLLECTION);
-  }
-
-  async createInquiry(payload: CreateInquiry): Promise<{ id: string }> {
-    const data = { ...payload, isRead: false };
-    // 4️⃣ Send email to admin
-    await sendInquiryEmail({
-      to: "markkings1551@yahoo.com",
-      name: payload.name,
-      subject: payload.reason,
-      message: payload.message,
-      attachmentUrl: payload.file?.url,
-    });
-
-    return this.create(data);
+    super(db, INQUIRY_COLLECTION, inquirySchema);
   }
 
   async toggleReadStatus(id: string): Promise<void> {
     const doc = await this.getById(id);
 
-    if (!doc) return;
+    if (!doc) throw new Error("Document not found");
 
     //2. Toggle read status
     const newIsRead = !doc.isRead;
@@ -46,53 +31,33 @@ export class InquiryRepository extends FirestoreRepository<Inquiry> {
   }
 
   async deleteInquiry(id: string): Promise<void> {
-    const doc = (await this.getById(id)) as Inquiry;
+    const docData = (await this.getById(id)) as Inquiry;
 
-    if (!doc) return;
+    if (!docData) throw new Error("Document not found");
 
-    if (doc.file) {
-      // Delete file from storage
-      await deleteFile(doc.file.url);
-    }
+    if (docData.file) await cleanupFiles(docData.file.url);
 
     await this.delete(id);
   }
 
   async bulkDeleteInquiries(ids: string[]): Promise<void> {
-    const unique = [...new Set(ids)].filter(Boolean);
-    if (unique.length === 0) return;
+    // read all docs to get file urls
+    const docData = await this.getByIds(ids);
 
-    // 1) Fetch docs (chunked) so we can delete old files
-    const fileUrlsToDelete: string[] = [];
+    // collect only valid file URLs
+    const files = docData.map((doc) => doc.file?.url).filter((url): url is string => Boolean(url)); // only keep valid strings
+    cleanupFiles(files);
 
-    for (let i = 0; i < unique.length; i += 500) {
-      const chunk = unique.slice(i, i + 500);
-
-      const refs = chunk.map((id) => this.col().doc(id));
-      const snaps = await this.db.getAll(...refs);
-
-      for (const s of snaps) {
-        if (!s.exists) continue;
-        const data = s.data() as Inquiry;
-
-        const url = data?.file?.url; // adjust if your structure differs
-        if (url) fileUrlsToDelete.push(url);
-      }
-    }
-
-    // 2) Delete files (best-effort)
-    // If you want strict behavior, remove try/catch and let it throw.
-    await Promise.allSettled(fileUrlsToDelete.map((u) => deleteFile(u)));
-
-    // 3) Delete docs
-    await this.bulkDelete(unique);
+    // delete files from Firebase Storage
+    await this.bulkDelete(ids);
   }
 
   async CurrentMonthInquiryCount(): Promise<{ count: number }> {
     // Get the start and end of the current month
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); // 1st day of the month
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59); // Last day of the month
 
     // Firestore requires Timestamp objects for comparisons
     const startTimestamp = Timestamp.fromDate(startOfMonth);

@@ -1,57 +1,41 @@
 import * as admin from "firebase-admin";
-import algoliasearch from "algoliasearch";
-import { docToAlgoliaObject } from "../../utils/algolia.helper";
-import toDateMs from "../../utils/to.date.ms";
+import { createAlgoliaClient } from "./algolia.client";
 
-if (!admin.apps.length) admin.initializeApp();
+import { NEWS_AND_UPDATES_COLLECTION, TRANSPARENCY_SEAL_COLLECTION } from "../../const/collection.name";
 
-const ALGOLIA_APP_ID = "J0QZI9LWOR";
-const ALGOLIA_ADMIN_KEY = "e3159cb395991f41b45c6a987fb6745d";
+const client = createAlgoliaClient(process.env.ALGOLIA_ADMIN_KEY!);
+const globalIndex = client.initIndex("global_search");
 
-const algoliaClient = algoliasearch(ALGOLIA_APP_ID, ALGOLIA_ADMIN_KEY);
-const globalIndex = algoliaClient.initIndex("global_search");
+export class AlgoliaIndexService {
+  async backfillGlobal() {
+    const db = admin.firestore();
+    let totalUploaded = 0;
 
-const COLLECTIONS = ["news_and_updates", "transparency_seal"] as const;
+    const collections = [NEWS_AND_UPDATES_COLLECTION, TRANSPARENCY_SEAL_COLLECTION];
 
-export const backfillAlgoliaGlobal = async () => {
-  const db = admin.firestore();
-  let totalUploaded = 0;
+    for (const collection of collections) {
+      const snap = await db.collection(collection).get();
 
-  for (const collection of COLLECTIONS) {
-    const snap = await db.collection(collection).get();
+      const objects: any[] = [];
 
-    // Algolia batch limit is 1000 objects per request (safe to chunk)
-    const objects: any[] = [];
+      snap.forEach((doc) => {
+        const data = doc.data();
 
-    snap.forEach((doc) => {
-      const id = doc.id;
-      const data = doc.data();
-
-      const rawDate = data.createdAt || data.publishedAt || null;
-      const dateMs = toDateMs(rawDate);
-
-      objects.push({
-        objectID: `${collection}_${id}`, // unique across all collections
-        ...docToAlgoliaObject(collection, id, data),
-
-        type: collection,
-        hasDate: dateMs ? 1 : 0,
-        dateMs: dateMs ?? 0,
-
-        url: collection === "news_and_updates" ? `/news/${id}` : `/transparency/${id}`,
+        objects.push({
+          objectID: `${collection}_${doc.id}`,
+          ...data,
+        });
       });
-    });
 
-    // chunk upload
-    const chunkSize = 1000;
-    for (let i = 0; i < objects.length; i += chunkSize) {
-      const chunk = objects.slice(i, i + chunkSize);
-      await globalIndex.saveObjects(chunk);
-      totalUploaded += chunk.length;
+      const chunkSize = 1000;
+
+      for (let i = 0; i < objects.length; i += chunkSize) {
+        const chunk = objects.slice(i, i + chunkSize);
+        await globalIndex.saveObjects(chunk);
+        totalUploaded += chunk.length;
+      }
     }
-  }
 
-  return {
-    totalUploaded,
-  };
-};
+    return { totalUploaded };
+  }
+}

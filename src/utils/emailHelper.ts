@@ -1,7 +1,7 @@
 import fetch from "node-fetch";
 
 interface InquiryEmailParams {
-  to: string;
+  to?: string;
   name: string;
   subject?: string;
   message: string;
@@ -14,7 +14,7 @@ export async function sendInquiryEmail(params: InquiryEmailParams) {
     template_id: process.env.EMAILJS_TEMPLATE_ID!,
     user_id: process.env.EMAILJS_PRIVATE_KEY!, // 🔒 private key
     template_params: {
-      to_email: params.to,
+      to_email: params.to || process.env.ADMIN_EMAIL,
       from_name: params.name,
       subject: params.subject || "New Inquiry Received",
       message: params.message,

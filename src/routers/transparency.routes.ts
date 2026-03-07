@@ -11,6 +11,7 @@ import {
   deleteTransparencyController,
   bulkDeleteTransparencyController,
   deleteTransparencyFolderController,
+  getTransparencyCountThisYearController,
 } from "../controller/transparency";
 
 import { requireAdmin } from "../middleware/middleware";
@@ -32,9 +33,10 @@ const router = Router();
 
 // public routes
 router.get("/", validateQuery(getPaginatedTransparencySchema), getPaginatedTransparencyController);
-router.get("/count", validateQuery(getTotalTransparencyCountSchema), getTotalTransparencyCountController);
+router.get("/count", requireAdmin, validateQuery(getTotalTransparencyCountSchema), getTotalTransparencyCountController);
 router.get("/folder", validateQuery(getTransparencyFolder), getTransparencyFolderController);
 router.get("/withFilters", validateQuery(getTransparencyWithFilters), getTransparencyWithFiltersController);
+router.get("/count-this-year", requireAdmin, getTransparencyCountThisYearController);
 
 // private routes
 router.post(

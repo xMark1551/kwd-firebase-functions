@@ -1,6 +1,8 @@
 import type { Request, Response, NextFunction } from "express";
 import type { RequestHandler } from "express";
 
+import { activityLogService } from "../services/activity.log.service";
+
 export const asyncHandler =
   <
     P = Record<string, string>,
@@ -19,16 +21,52 @@ export const asyncHandler =
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 
-export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error(err);
+export const errorHandler = async (err: any, req: Request, res: Response, next: NextFunction) => {
+  console.log("errorHandler", req.user);
 
-  if (res.headersSent) return next(err);
+  // Normalize status code
+  const status =
+    typeof err.status === "number" ? err.status : typeof err.statusCode === "number" ? err.statusCode : 500;
 
-  const status = err.status || err.statusCode || 500;
+  // If headers already sent, delegate to default Express handler
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  // Log error to console for debugging
+  if (process.env.NODE_ENV === "development") {
+    console.error("error log", err);
+  }
+
+  // Attempt to log error activity, but don't crash if logging fails
+  try {
+    await activityLogService.createLog({
+      level: "ERROR",
+      status,
+      action: err.code || "SERVER_ERROR",
+      message: err.message || "Unknown error",
+      meta: {
+        user: {
+          uid: req.user?.uid ?? "anonymous",
+          admin: req.user?.admin ?? false,
+          username: req.user?.username ?? "",
+        },
+        path: req.path,
+        method: req.method,
+        ip: req.ip ?? "",
+        userAgent: req.headers["user-agent"] ?? "",
+        body: req.body,
+        query: req.query,
+        details: err.meta?.details ?? {},
+      },
+    });
+  } catch (logErr) {
+    console.error("Failed to log activity:", logErr);
+  }
 
   res.status(status).json({
     ok: false,
-    message: err.message || "Internal server error",
+    message: err.message || "SERVER_ERROR",
     ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 };

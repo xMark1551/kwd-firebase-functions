@@ -6,19 +6,7 @@ import { matchesAllowed } from "../utils/multiplart.helper";
 type MultipartOpts = {
   maxFiles?: number;
   maxFileSizeBytes?: number;
-
-  /**
-   * Accept patterns (any mix):
-   * - Exact mime: "application/pdf"
-   * - Wildcard:   "image/*"
-   * - Extension:  ".pdf"  ".png"
-   */
   allowedTypes?: string[];
-
-  /**
-   * If true, allow when mime is unknown but extension matches allowedTypes.
-   * Default true.
-   */
   allowExtensionFallback?: boolean;
 };
 
@@ -32,16 +20,6 @@ export const multipartBusboy = (opts?: MultipartOpts): RequestHandler => {
     const ct = String(req.headers["content-type"] ?? "");
     if (!ct.includes("multipart/form-data")) return next();
 
-    const raw = (req as any).rawBody ?? req.body;
-
-    if (!raw || !(raw instanceof Buffer)) {
-      return next({
-        ok: false,
-        status: 400,
-        message: "Multipart body not available as Buffer (rawBody missing).",
-      });
-    }
-
     const bb = Busboy({
       headers: req.headers,
       limits: { files: maxFiles, fileSize: maxFileSizeBytes },
@@ -51,23 +29,12 @@ export const multipartBusboy = (opts?: MultipartOpts): RequestHandler => {
     const files: UploadInput[] = [];
 
     let fileCount = 0;
-    let aborted = false;
     let responded = false;
-
-    const activeStreams: Set<NodeJS.ReadableStream> = new Set();
-
-    const cleanup = () => {
-      activeStreams.forEach((stream) => {
-        if (typeof (stream as any).resume === "function") (stream as any).resume();
-      });
-      activeStreams.clear();
-      bb.removeAllListeners();
-    };
 
     const fail = (message: string, details?: any) => {
       if (responded || res.headersSent) return;
       responded = true;
-      cleanup();
+      bb.removeAllListeners();
       next({
         ok: false,
         status: 400,
@@ -76,22 +43,10 @@ export const multipartBusboy = (opts?: MultipartOpts): RequestHandler => {
       });
     };
 
-    const handleAbort = () => {
-      aborted = true;
-      responded = true;
-      cleanup();
-    };
-
-    req.on("aborted", handleAbort);
-    req.on("close", () => {
-      if (!responded) handleAbort();
-    });
-
     const arrayFields = new Set(["files"]);
 
     bb.on("field", (name, val) => {
       if (responded) return;
-
       if (arrayFields.has(name)) {
         const prev = fields[name];
         fields[name] = prev ? (Array.isArray(prev) ? [...prev, val] : [prev, val]) : [val];
@@ -106,12 +61,9 @@ export const multipartBusboy = (opts?: MultipartOpts): RequestHandler => {
         return;
       }
 
-      activeStreams.add(file);
-
       fileCount += 1;
       if (fileCount > maxFiles) {
         file.resume();
-        activeStreams.delete(file);
         fail(`Too many files (max ${maxFiles})`);
         return;
       }
@@ -121,22 +73,17 @@ export const multipartBusboy = (opts?: MultipartOpts): RequestHandler => {
 
       if (!filename) {
         file.resume();
-        activeStreams.delete(file);
         return;
       }
 
       if (allowedTypes?.length) {
-        const ok = matchesAllowed(allowedTypes, mimeType, filename);
-
-        // Some clients send application/octet-stream or empty mime
         const maybeUnknown = !mimeType || mimeType === "application/octet-stream" || mimeType === "binary/octet-stream";
-
+        const ok = matchesAllowed(allowedTypes, mimeType, filename);
         const okWithFallback =
           ok || (allowExtensionFallback && maybeUnknown && matchesAllowed(allowedTypes, "", filename));
 
         if (!okWithFallback) {
           file.resume();
-          activeStreams.delete(file);
           fail(
             `Unsupported file type`,
             `got mime="${mimeType || "unknown"}" filename="${filename}" allowed=${allowedTypes.join(", ")}`,
@@ -149,52 +96,45 @@ export const multipartBusboy = (opts?: MultipartOpts): RequestHandler => {
       let hitLimit = false;
 
       file.on("data", (d: Buffer) => {
-        if (responded || hitLimit || aborted) return;
+        if (responded || hitLimit) return;
         chunks.push(d);
       });
 
       file.on("limit", () => {
         hitLimit = true;
         file.resume();
-        activeStreams.delete(file);
         fail(`File too large (>${maxFileSizeBytes} bytes)`);
       });
 
       file.on("error", (err) => {
         file.resume();
-        activeStreams.delete(file);
         fail("File stream error", err);
       });
 
       file.on("end", () => {
-        activeStreams.delete(file);
-        if (responded || hitLimit || aborted) return;
-
-        files.push({
-          filename,
-          data: Buffer.concat(chunks),
-          contentType: mimeType,
-        });
+        if (responded || hitLimit) return;
+        files.push({ filename, data: Buffer.concat(chunks), contentType: mimeType });
       });
     });
 
     bb.on("error", (err) => fail("Malformed multipart form data", err));
 
     bb.on("finish", () => {
-      if (responded || aborted) {
-        cleanup();
-        return;
-      }
-
-      req.removeListener("aborted", handleAbort);
+      if (responded) return;
       bb.removeAllListeners();
-
       (req as any).body = fields;
-      req.filesToUpload = files; // or your typed property
-
+      req.filesToUpload = files;
       next();
     });
 
-    bb.end(raw);
+    // ✅ KEY FIX: write + end separately instead of bb.end(raw)
+    const raw = (req as any).rawBody;
+    if (raw instanceof Buffer) {
+      bb.write(raw);
+      bb.end();
+    } else {
+      // Fallback: pipe directly from request stream
+      req.pipe(bb);
+    }
   };
 };

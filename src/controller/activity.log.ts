@@ -2,17 +2,23 @@ import type { Request, Response } from "express";
 
 import { asyncHandler } from "../middleware/handler";
 
-import { getPaginatedLogs, getPaginatedLogsTotalCount, testDeleteLogs } from "../services/logger.service";
+import { activityLogService } from "../services/activity.log.service";
 
 export const getPaginatedLogsController = asyncHandler(async (req: Request, res: Response) => {
-  console.log("req.query", req.query);
-  const logs = await getPaginatedLogs(req.query as any);
+  const query = req.validatedQuery;
+  const logs = await activityLogService.getPaginatedLogsWithTotalCount(query);
 
-  res.status(200).json(logs);
+  res.status(200).json({
+    ok: true,
+    items: logs.items,
+    meta: logs.meta,
+    nextCursor: logs.nextCursor,
+  });
 });
 
 export const getPaginatedLogsTotalCountController = asyncHandler(async (req: Request, res: Response) => {
-  const response = await getPaginatedLogsTotalCount();
+  const query = req.validatedQuery;
+  const response = await activityLogService.getPaginatedLogsTotalCount(query);
 
   res.status(200).json({
     count: response,
@@ -20,7 +26,7 @@ export const getPaginatedLogsTotalCountController = asyncHandler(async (req: Req
 });
 
 export const testDeleteLogsController = asyncHandler(async (req: Request, res: Response) => {
-  const response = await testDeleteLogs();
+  const response = await activityLogService.clearAllLogs();
 
   res.status(200).json(response);
 });
