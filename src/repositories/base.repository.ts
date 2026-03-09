@@ -334,7 +334,7 @@ export class FirestoreRepository<T extends BaseDoc> {
     const filters = params?.filters ?? [];
 
     // If a cursor is provided and it matches the page size, use it as the starting point
-    const cursor: PageCursor | null = params?.cursor?.limit === pageSize ? params.cursor : null;
+    const cursor: PageCursor | null = params?.cursor?.limit === pageSize && page > 1 ? params.cursor : null;
 
     if (page < 1) throw new Error("page must be >= 1");
 

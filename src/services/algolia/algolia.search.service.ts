@@ -1,11 +1,16 @@
 import { createAlgoliaClient } from "./algolia.client";
+
+import { generatePath } from "../../utils/generatePath";
+
 import type { SearchIndex } from "algoliasearch";
+import type { AuthedUser } from "../../middleware/auth";
 
 const client = createAlgoliaClient(process.env.ALGOLIA_ADMIN_KEY!);
 
 export type IndexKey = "global";
 
 export interface SearchArgs {
+  user?: AuthedUser;
   query: string;
   limit?: number;
   page?: number;
@@ -63,8 +68,8 @@ export class AlgoliaSearchService {
     // visibility
     if (role === "client") {
       filters.push("visibility:public");
-    } else {
-      filters.push("(visibility:public OR visibility:admin)");
+    } else if (role === "admin") {
+      filters.push("(visibility:public OR visibility:private)");
     }
 
     // sources
@@ -81,12 +86,14 @@ export class AlgoliaSearchService {
   }
 
   async search(args: SearchArgs): Promise<SearchResponse> {
-    const { query = "", limit = 2, page = 1, sources = [], category = "" } = args;
+    const { query = "", limit = 2, page = 1, sources = [], category = "", user = { admin: false } } = args;
 
     const indexKey = "global";
 
+    const role = user?.admin ? "admin" : "client";
+
     const filters = this.buildFilters({
-      role: "client",
+      role,
       sources,
       category,
     });
@@ -104,6 +111,7 @@ export class AlgoliaSearchService {
       title: item.title + (item.year ? ` (${item.year})` : ""),
       category: item.category || "Database",
       source: item.source || item.__index,
+      path: generatePath({ ...item, role }),
     }));
 
     return {

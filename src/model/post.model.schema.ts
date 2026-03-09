@@ -13,7 +13,7 @@ export const postSchema = z.object({
   category: categorySchema,
   status: statusSchema,
   files: z.array(z.string()).default([]),
-  isFeatured: z.boolean().default(false),
+  isFeatured: z.boolean(),
   createdAt: z.instanceof(Timestamp),
   updatedAt: z.instanceof(Timestamp),
 });

@@ -4,8 +4,9 @@ import { searchService } from "../services/algolia/algolia.search.service";
 
 export const searchController = asyncHandler(async (req: Request, res: Response) => {
   const query = req.validatedQuery;
+  const user = req.user;
 
-  const response = await searchService.search(query);
+  const response = await searchService.search({ ...query, user });
 
   console.log("response", response);
 

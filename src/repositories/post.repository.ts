@@ -197,6 +197,20 @@ export class NewsRepository extends FirestoreRepository<Post> {
     const snap = await this.col().doc(id).get();
 
     const newIsFeatured = !snap.data()?.isFeatured;
+    const isPublished = snap.data()?.status === "Published";
+
+    // fetch featured post
+    const featuredPost = await this.featuredPostList();
+
+    // only published posts can be featured
+    if (!isPublished && newIsFeatured) {
+      throw new Error("Only published posts can be featured");
+    }
+
+    // only 2 posts can be featured at a time
+    if (featuredPost.length > 2 && newIsFeatured) {
+      throw new Error("Only 2 posts can be featured at a time");
+    }
 
     return await this.col().doc(id).update({ isFeatured: newIsFeatured });
   }
@@ -310,7 +324,7 @@ export class NewsRepository extends FirestoreRepository<Post> {
   }
 
   async featuredPostList(): Promise<WithId<Post>[]> {
-    const qs = await this.col().where("isFeatured", "==", true).limit(3).get();
+    const qs = await this.col().where("isFeatured", "==", true).where("status", "==", "Published").limit(3).get();
 
     return qs.docs.map((d) =>
       this.validateData({

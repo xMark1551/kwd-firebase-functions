@@ -3,7 +3,7 @@ import { WhereFilter } from "../repositories/base.repository";
 import { getDateRangeForYearOrMonth } from "./date.converter";
 
 type GenericFilter = {
-  [key: string]: string | number | undefined;
+  [key: string]: string | number | boolean | undefined;
   year?: number;
   month?: number;
 };
@@ -30,6 +30,10 @@ export const buildNormalFilters = (filter: Pick<GenericFilter, keyof GenericFilt
     }
 
     if (typeof value === "number") {
+      filters.push({ field, op: "==", value });
+    }
+
+    if (typeof value === "boolean") {
       filters.push({ field, op: "==", value });
     }
   });

@@ -64,6 +64,7 @@ export class PostService {
   }
 
   async patchPost(id: string, data: PatchPost, filesToUpload: UploadInput[]) {
+    console.log("patchPost", data);
     // 1. upload files
     const uploadUrls = filesToUpload?.length ? await uploadFiles(NEWS_AND_UPDATES_FOLDER, filesToUpload) : [];
 
@@ -125,6 +126,8 @@ export class PostService {
 
     // Handle filters, if category is latest then remove category filter
     const filters = filterBuilder({ ...filter });
+
+    console.log("filters", filters);
 
     const key = this.key("list", { ...query });
 

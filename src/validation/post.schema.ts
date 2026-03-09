@@ -34,6 +34,7 @@ export const postFilterSchema = z.object({
   status: statusSchema.optional(),
   year: z.coerce.number().int().min(2015).max(2100).optional(),
   month: z.coerce.number().int().min(1).max(12).optional(),
+  isFeatured: z.coerce.boolean().optional(),
 });
 
 export type PostFilter = z.infer<typeof postFilterSchema>;
