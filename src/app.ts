@@ -18,6 +18,7 @@ app.use(express.json());
 app.use(optionalAuth);
 app.use((req, res, next) => {
   logService.info(`[${req.method}] ${req.path}`, {
+    ip: req.ip,
     user: {
       uid: req.user?.uid ?? "anonymous",
       admin: req.user?.admin ?? false,
