@@ -3,6 +3,8 @@ import type { RequestHandler } from "express";
 
 import { activityLogService } from "../services/activity.log.service";
 
+import { sanitizeBody } from "../utils/sanitize-body";
+
 export const asyncHandler =
   <
     P = Record<string, string>,
@@ -55,7 +57,7 @@ export const errorHandler = async (err: any, req: Request, res: Response, next: 
         method: req.method,
         ip: req.ip ?? "",
         userAgent: req.headers["user-agent"] ?? "",
-        body: req.body,
+        body: sanitizeBody(req.body),
         query: req.query,
         details: err.meta?.details ?? {},
       },

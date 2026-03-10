@@ -24,31 +24,31 @@ export class CacheService {
 
     this.redis = new Redis(options.redisUrl ?? process.env.REDIS_URL ?? "redis://127.0.0.1:6379", {
       retryStrategy(times) {
-        if (times > 1) {
-          // console.log("❌ Redis disabled after 5 retries");
+        if (times > 5) {
+          console.log("❌ Redis disabled after 5 retries");
           return null; // stop reconnecting
         }
         return Math.min(times * 200, 2000);
       },
 
-      maxRetriesPerRequest: 1,
+      maxRetriesPerRequest: null,
       enableReadyCheck: false,
       lazyConnect: false,
     });
 
     this.redis.on("connect", () => {
       this.redisAvailable = true;
-      // console.log("✅ Redis connected");
+      console.log("✅ Redis connected..");
     });
 
     this.redis.on("error", (err) => {
       this.redisAvailable = false;
-      // console.error("Redis error:", err);
+      console.error("❌ Redis error:", err);
     });
 
     this.redis.on("end", () => {
       this.redisAvailable = false;
-      // console.log("❌ Redis disconnected");
+      console.log("❌ Redis disconnected");
     });
   }
 
@@ -99,6 +99,7 @@ export class CacheService {
 
     try {
       const data = await this.redis.get(this.buildKey(key));
+      console.log("Redis Hit Cache", data);
       return data ? (JSON.parse(data) as T) : null;
     } catch (error) {
       console.error("Cache GET error:", error);
@@ -116,6 +117,7 @@ export class CacheService {
 
     try {
       const ttl = options?.ttl ?? this.defaultTTL;
+      console.log("Redis Set Cache", value);
       await this.redis.set(this.buildKey(key), JSON.stringify(value), "EX", ttl);
     } catch (error) {
       console.error("Cache SET error:", error);

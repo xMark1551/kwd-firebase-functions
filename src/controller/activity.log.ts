@@ -25,7 +25,7 @@ export const getPaginatedLogsTotalCountController = asyncHandler(async (req: Req
   });
 });
 
-export const testDeleteLogsController = asyncHandler(async (req: Request, res: Response) => {
+export const clearAllLogsController = asyncHandler(async (req: Request, res: Response) => {
   const response = await activityLogService.clearAllLogs();
 
   res.status(200).json(response);

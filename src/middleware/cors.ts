@@ -7,7 +7,7 @@ export const corsConfig = cors({
     "https://us-central1-kwd-official-website.cloudfunctions.net/api",
     "https://kwdkldn.netlify.app",
   ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Authorization", "Content-Type"],
   credentials: true,
 });

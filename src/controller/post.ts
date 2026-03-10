@@ -20,8 +20,6 @@ export const getPaginatedPostController = asyncHandler(async (req: Request, res:
 
   const response = await postService.getPaginatedPostWithCount(query);
 
-  console.log("response", response);
-
   res.status(200).json({
     ok: true,
     items: response.items,

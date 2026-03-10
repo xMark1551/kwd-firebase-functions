@@ -7,7 +7,7 @@ import { getPaginatedActivityLogsSchema } from "../validation/activity-log.schem
 import {
   getPaginatedLogsController,
   getPaginatedLogsTotalCountController,
-  testDeleteLogsController,
+  clearAllLogsController,
 } from "../controller/activity.log";
 
 const router = Router();
@@ -15,6 +15,6 @@ const router = Router();
 router.get("/", requireAdmin, validateQuery(getPaginatedActivityLogsSchema), getPaginatedLogsController);
 router.get("/count", requireAdmin, getPaginatedLogsTotalCountController);
 
-router.delete("/", testDeleteLogsController);
+router.delete("/", clearAllLogsController);
 
 export default router;

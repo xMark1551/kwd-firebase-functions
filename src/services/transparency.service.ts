@@ -46,7 +46,7 @@ export class TransparencyService {
   }
 
   private async invalidateTransparencyCache() {
-    await this.cache.del(`${this.prefix}:*`);
+    await this.cache.invalidatePattern(`${this.prefix}:*`);
   }
 
   private async invalidateFolderCache() {
