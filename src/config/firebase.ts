@@ -4,7 +4,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { storage as adminStorage } from "firebase-admin";
-import serviceAccount from "./kwd-official-website-firebase-adminsdk-fbsvc-b707ecbd5f.json";
+import serviceAccount from "../kwd-official-website-firebase-adminsdk-fbsvc-c8d5065761.json";
 import type { ServiceAccount } from "firebase-admin/app";
 
 if (!getApps().length) {
