@@ -68,6 +68,9 @@ node_modules/
 #
 .config/env.kwd-official-website
 
+lib/config/*.json
+src/config/*.json
+
 # dataconnect generated files
 .dataconnect
 
