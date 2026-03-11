@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "resolveJsonModule": true,
     "lib": ["ES2020"],
     "module": "commonjs",
     "target": "ES2020",

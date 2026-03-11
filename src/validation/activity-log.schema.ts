@@ -2,11 +2,13 @@ import { z } from "zod";
 import { paginationSchema } from "./pagination.schema";
 
 export const metaSchema = z.object({
-  user: z.object({
-    uid: z.string(),
-    username: z.string(),
-    admin: z.boolean(),
-  }),
+  user: z
+    .object({
+      uid: z.string(),
+      username: z.string(),
+      admin: z.boolean(),
+    })
+    .nullable(),
   method: z.string(),
   path: z.string().optional(),
   ip: z.string().optional(),

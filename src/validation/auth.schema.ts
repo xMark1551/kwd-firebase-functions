@@ -1,0 +1,8 @@
+import { z } from "zod";
+
+export const loginSchema = z.object({
+  email: z.string().trim().min(1, "Email is required").email("Invalid email address").max(255, "Email too long"),
+  password: z.string(), // let the firebase handle password validation to avoid conflict
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;

@@ -1,6 +1,6 @@
 // Main entry point: export everything
-import * as admin from "firebase-admin";
-admin.initializeApp();
+// import * as admin from "firebase-admin";
+// admin.initializeApp();
 
 import { onRequest } from "firebase-functions/v2/https";
 import { app } from "./app";

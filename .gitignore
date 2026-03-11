@@ -66,7 +66,10 @@ node_modules/
 .env
 
 #
-.env.kwd-official-website
+.config/env.kwd-official-website
 
 # dataconnect generated files
 .dataconnect
+
+serviceAccountKey.json
+

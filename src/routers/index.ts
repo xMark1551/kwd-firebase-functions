@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import authRoutes from "./auth.routes";
 import postRoutes from "./post.routes";
 import transparencyRoutes from "./transparency.routes";
 import inquiryRoutes from "./inquiry.routes";
@@ -20,6 +21,7 @@ router.get("/health", (_req, res) => {
 /**
  * API routes
  */
+router.use("/auth", authRoutes);
 router.use("/posts", postRoutes);
 router.use("/transparency", transparencyRoutes);
 router.use("/inquiry", inquiryRoutes);

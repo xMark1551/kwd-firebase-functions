@@ -18,10 +18,13 @@ import { validateBody, validateQuery, validateParams } from "../middleware/valid
 import { createInquirySchema, getPaginatedInquiriesSchema, getTotalInquiryCount } from "../validation/inquiry.schema";
 import { idSchema, idsSchema } from "../validation/id.schema";
 
+import { contactLimiter } from "../middleware/rate-limiter";
+
 const router = Router();
 
 router.post(
   "/",
+  contactLimiter,
   multipartBusboy({
     maxFiles: 1,
     maxFileSizeBytes: 5 * 1024 * 1024, // limit to 5MB

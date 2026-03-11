@@ -24,8 +24,6 @@ export const asyncHandler =
   };
 
 export const errorHandler = async (err: any, req: Request, res: Response, next: NextFunction) => {
-  console.log("errorHandler", req.user);
-
   // Normalize status code
   const status =
     typeof err.status === "number" ? err.status : typeof err.statusCode === "number" ? err.statusCode : 500;
@@ -48,11 +46,13 @@ export const errorHandler = async (err: any, req: Request, res: Response, next: 
       action: err.code || "SERVER_ERROR",
       message: err.message || "Unknown error",
       meta: {
-        user: {
-          uid: req.user?.uid ?? "anonymous",
-          admin: req.user?.admin ?? false,
-          username: req.user?.username ?? "",
-        },
+        user: req.user
+          ? {
+              uid: req.user?.uid ?? "anonymous",
+              admin: req.user?.admin ?? false,
+              username: req.user?.username ?? "",
+            }
+          : null,
         path: req.path,
         method: req.method,
         ip: req.ip ?? "",
