@@ -36,7 +36,7 @@ export const getTotalTransparencyCountController = asyncHandler(async (req: Requ
 
   const response = await transparencyService.getTotalTransparencyCount(query);
 
-  ok(res, { count: response }, "Transparency total count fetched");
+  ok(res, response, "Transparency total count fetched");
 });
 
 export const getTransparencyFolderController = asyncHandler(async (req: Request, res: Response) => {

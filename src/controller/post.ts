@@ -27,7 +27,7 @@ export const getTotalPostCountController = asyncHandler(async (req: Request, res
 
   const response = await postService.getTotalPostCount(query);
 
-  ok(res, { count: response }, "Post count fetched");
+  ok(res, response, "Post count fetched");
 });
 
 export const getPostByIdController = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {

@@ -7,5 +7,5 @@ import { authService } from "../services/auth.service";
 export const loginController = asyncHandler(async (req: Request, res: Response) => {
   const response = await authService.login(req.body);
 
-  ok(res, { customToken: response }, "User logged in");
+  ok(res, response, "User logged in");
 });

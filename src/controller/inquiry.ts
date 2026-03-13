@@ -24,7 +24,7 @@ export const getPaginatedInquiryController = asyncHandler(async (req: Request, r
 export const getInquiriesTotalCountController = asyncHandler(async (req: Request, res: Response) => {
   const response = await inquiryService.getInquiriesTotalCount();
 
-  ok(res, { count: response }, "Inquiries total count fetched");
+  ok(res, response, "Inquiries total count fetched");
 });
 
 export const getCurrentMonthInquiriesCountController = asyncHandler(async (req: Request, res: Response) => {
