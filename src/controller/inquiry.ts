@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
-
 import { asyncHandler } from "../middleware/handler";
+import { ok } from "../utils/reponse";
 
 import { inquiryService } from "../services/inquiry.service";
 
@@ -8,12 +8,9 @@ export const createInquiryController = asyncHandler(async (req: Request, res: Re
   const data = req.body;
   const fileToUpload = req.filesToUpload[0];
 
-  await inquiryService.createInquiry(data, fileToUpload);
+  const response = await inquiryService.createInquiry(data, fileToUpload);
 
-  res.status(200).json({
-    ok: true,
-    message: "Inquiry created",
-  });
+  ok(res, response, "Inquiry created");
 });
 
 export const getPaginatedInquiryController = asyncHandler(async (req: Request, res: Response) => {
@@ -21,67 +18,54 @@ export const getPaginatedInquiryController = asyncHandler(async (req: Request, r
 
   const response = await inquiryService.getPaginatedInquiriesWithTotalCount(query);
 
-  res.status(200).json({
-    ok: true,
-    items: response.items,
-    meta: response.meta,
-    nextCursor: response.nextCursor,
-  });
+  ok(res, response, "Inquiries fetched");
 });
 
 export const getInquiriesTotalCountController = asyncHandler(async (req: Request, res: Response) => {
   const response = await inquiryService.getInquiriesTotalCount();
 
-  res.status(200).json({ count: response });
+  ok(res, { count: response }, "Inquiries total count fetched");
 });
 
 export const getCurrentMonthInquiriesCountController = asyncHandler(async (req: Request, res: Response) => {
   const response = await inquiryService.getCurrentMonthInquiriesCount();
 
-  res.status(200).json(response);
+  ok(res, response, "Inquiries current month count fetched");
 });
 
 export const getUnreadInquiriesCountController = asyncHandler(async (req: Request, res: Response) => {
   const response = await inquiryService.getUnreadInquiriesCount();
 
-  res.status(200).json(response);
+  ok(res, response, "Inquiries unread count fetched");
 });
 
 export const toggleReadStatusController = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
 
-  await inquiryService.toggleReadStatus(id);
+  const response = await inquiryService.toggleReadStatus(id);
 
-  res.status(200).json({
-    ok: true,
-  });
+  ok(res, response, "Inquiry read status updated");
 });
 
 export const markAllAsReadController = asyncHandler(async (req: Request, res: Response) => {
   const ids = req.body;
 
-  await inquiryService.markAllAsRead(ids);
+  const response = await inquiryService.markAllAsRead(ids);
 
-  res.status(200).json({
-    ok: true,
-  });
+  ok(res, response, "Inquiries marked as read");
 });
 
 export const deleteInquiryController = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
-  await inquiryService.deleteInquiry(id);
+  const response = await inquiryService.deleteInquiry(id);
 
-  res.status(200).json({
-    ok: true,
-  });
+  ok(res, response, "Inquiry deleted");
 });
 
 export const bulkDeleteInquiriesController = asyncHandler(async (req: Request, res: Response) => {
   const ids = req.body;
 
-  await inquiryService.bulkDeleteInquiries(ids);
+  const response = await inquiryService.bulkDeleteInquiries(ids);
 
-  res.status(200).json({
-    ok: true,
-  });
+  ok(res, response, "Inquiries bulk deleted");
 });

@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { asyncHandler } from "../middleware/handler";
+import { ok } from "../utils/reponse";
 import { searchService } from "../services/algolia/algolia.search.service";
 
 export const searchController = asyncHandler(async (req: Request, res: Response) => {
@@ -8,7 +9,5 @@ export const searchController = asyncHandler(async (req: Request, res: Response)
 
   const response = await searchService.search({ ...query, user });
 
-  console.log("response", response);
-
-  res.status(200).json(response);
+  ok(res, response, "Search results fetched");
 });
