@@ -2,17 +2,16 @@ import type { Request, Response } from "express";
 import { asyncHandler } from "../middleware/handler";
 import { postService } from "../services/post.service";
 
+import { ok } from "../utils/reponse";
+
 export const createPostController = asyncHandler(async (req: Request, res: Response) => {
   const user = req.user;
   const data = req.body;
   const filesToUpload = req.filesToUpload;
 
-  await postService.createPost(user, data, filesToUpload);
+  const reponse = await postService.createPost(user, data, filesToUpload);
 
-  res.status(200).json({
-    ok: true,
-    message: "Post created",
-  });
+  ok(res, reponse, "Post created");
 });
 
 export const getPaginatedPostController = asyncHandler(async (req: Request, res: Response) => {
@@ -26,6 +25,8 @@ export const getPaginatedPostController = asyncHandler(async (req: Request, res:
     meta: response.meta,
     nextCursor: response.nextCursor,
   });
+
+  ok(res, response, "Post fetched");
 });
 
 export const getTotalPostCountController = asyncHandler(async (req: Request, res: Response) => {
@@ -33,9 +34,7 @@ export const getTotalPostCountController = asyncHandler(async (req: Request, res
 
   const response = await postService.getTotalPostCount(query);
 
-  console.log("response", response);
-
-  res.status(200).json({ count: response });
+  ok(res, { count: response }, "Post count fetched");
 });
 
 export const getPostByIdController = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
