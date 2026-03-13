@@ -67,8 +67,6 @@ node_modules/
 
 .kwd-official-website-firebase-adminsdk-fbsvc-c8d5065761.json
 
-lib/*.json
-src/*.json
 
 # dataconnect generated files
 .dataconnect
