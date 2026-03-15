@@ -2,8 +2,9 @@ import type { Request, Response, NextFunction } from "express";
 import type { RequestHandler } from "express";
 
 import { activityLogService } from "../services/activity.log.service";
+import { logService } from "../services/logger.service";
 
-import { sanitizeBody } from "../utils/sanitize-body";
+// import { sanitizeBody } from "../utils/sanitize-body";
 
 export const asyncHandler =
   <
@@ -38,32 +39,20 @@ export const errorHandler = async (err: any, req: Request, res: Response, next: 
     console.error("error log", err);
   }
 
-  // Attempt to log error activity, but don't crash if logging fails
-  try {
-    await activityLogService.createLog({
-      level: "ERROR",
-      status,
-      action: err.code || "SERVER_ERROR",
-      message: err.message || "Unknown error",
-      meta: {
-        user: req.user
-          ? {
-              uid: req.user?.uid ?? "anonymous",
-              admin: req.user?.admin ?? false,
-              username: req.user?.username ?? "",
-            }
-          : null,
-        path: req.path,
-        method: req.method,
-        ip: req.ip ?? "",
-        userAgent: req.headers["user-agent"] ?? "",
-        body: sanitizeBody(req.body),
-        query: req.query,
-        details: err.meta?.details ?? {},
-      },
-    });
-  } catch (logErr) {
-    console.error("Failed to log activity:", logErr);
+  const AUDIT_ERRORS = new Set([
+    "LOGIN_FAILED",
+    "INVALID_TOKEN",
+    "RATE_LIMIT_EXCEEDED",
+    "UNAUTHORIZED_ACCESS",
+    "BAD_REQUEST",
+  ]);
+
+  if (AUDIT_ERRORS.has(err.code)) {
+    try {
+      await activityLogService.fail(err.code, {}, err.message);
+    } catch (error) {
+      console.error("Failed to log activity:", error);
+    }
   }
 
   res.status(status).json({
@@ -71,4 +60,31 @@ export const errorHandler = async (err: any, req: Request, res: Response, next: 
     message: err.message || "SERVER_ERROR",
     ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
+};
+
+export const serviceHandler = async <T>(
+  action: string,
+  fn: () => Promise<T>, // your actual service logic
+  log = true, // whether to log
+): Promise<T> => {
+  try {
+    const result = await fn();
+
+    logService.info(action, "success");
+
+    if (log)
+      activityLogService.success(action, {
+        snapshot: result ?? {},
+      });
+
+    return result;
+  } catch (err: any) {
+    logService.error(action, {
+      snapshot: err ?? {},
+    });
+
+    activityLogService.fail(action, {}, err.message);
+
+    throw err;
+  }
 };

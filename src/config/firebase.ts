@@ -10,6 +10,7 @@ import type { ServiceAccount } from "firebase-admin/app";
 if (!getApps().length) {
   initializeApp({
     credential: cert(serviceAccount as ServiceAccount),
+    storageBucket: process.env.STORAGE_BUCKET,
   });
 }
 

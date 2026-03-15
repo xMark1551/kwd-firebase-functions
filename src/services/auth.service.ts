@@ -42,12 +42,19 @@ export class AuthService {
       admin: isAdmin,
       uid: data.localId,
       email: data.email,
-      displayName: data.displayName,
+      username: data.displayName ?? "",
       customToken: customToken,
     };
 
     // 3. Create activity log
-    await activityLogService.info("LOGIN", `User logged in`, user);
+    await activityLogService.success("LOGIN", {
+      snapshot: {
+        context: {
+          name: user.username,
+          email: user.email,
+        },
+      },
+    });
 
     return user;
   }

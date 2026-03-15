@@ -1,19 +1,19 @@
 import { db } from "../config/firebase";
+import { getContext } from "../context/requestContext";
 import { ActivityLogRepository } from "../repositories/activity.log.repository";
 
 import { CacheService, cacheService } from "../utils/cache";
 import { logService, LogService } from "./logger.service";
 
+import { filterBuilder } from "../utils/filter.builder";
+
 import type {
   GetPaginatedActivityLogs,
   CreateActivityLog,
-  Meta,
+  Target,
   ActivityLogFilter,
 } from "../validation/activity-log.schema";
 import type { PaginatedResult } from "../repositories/base.repository";
-
-import { filterBuilder } from "../utils/filter.builder";
-
 import type { ActivityLog } from "../model/activity.log.model.schema";
 
 type PaginatedResultWithCount = Omit<PaginatedResult<ActivityLog>, "meta"> & {
@@ -29,6 +29,10 @@ export class ActivityLogService {
     private readonly cache: CacheService,
     private readonly prefix = "logs",
   ) {}
+
+  private get ctx() {
+    return getContext(); // ✅ called fresh on every method invocation
+  }
 
   private key(type: string, params?: Record<string, unknown>) {
     return this.cache.keyBuilder(this.prefix, type, params);
@@ -48,47 +52,42 @@ export class ActivityLogService {
     return result;
   }
 
-  async info(action: string, message: string, meta?: any) {
+  async success(action: string, target: Target) {
     return this.createLog({
-      level: "INFO",
+      severity: "INFO",
+      author: this.ctx?.user ?? null,
       action,
-      status: 200,
-      message,
-      meta,
+      target,
+      status: "success",
+      code: 200,
     });
   }
 
-  async error(action: string, message: string, status: number = 500, meta?: Meta) {
+  async fail(action: string, target: Target, reason: string, code?: number) {
     return this.createLog({
-      level: "ERROR",
+      severity: "ERROR",
+      author: this.ctx?.user ?? null,
       action,
-      status,
-      message,
-      meta,
+      target,
+      status: "fail",
+      code: code ?? 400,
+      reason,
     });
   }
 
-  async warn(action: string, message: string, status: number = 400, meta?: Meta) {
+  async warn(action: string, target: Target, reason: string, code?: number) {
     return this.createLog({
-      level: "WARN",
+      severity: "WARNING",
+      author: this.ctx?.user ?? null,
       action,
-      status,
-      message,
-      meta,
+      target,
+      status: "fail",
+      code: code ?? 300,
+      reason,
     });
   }
 
-  async debug(action: string, message: string, status: number = 0, meta?: Meta) {
-    return this.createLog({
-      level: "DEBUG",
-      action,
-      status,
-      message,
-      meta,
-    });
-  }
-
-  async cleanupOldLogs(retentionDays: number = 0, batchSize: number = 500): Promise<number> {
+  async cleanupOldLogs(retentionDays: number = 0, batchSize: number = 500) {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 
@@ -119,7 +118,7 @@ export class ActivityLogService {
 
     await this.invalidateLogsCache();
 
-    return totalDeleted;
+    return { totalDeleted, retentionDays, batchSize };
   }
 
   async getPaginatedLogs(query: GetPaginatedActivityLogs) {
@@ -161,4 +160,4 @@ export class ActivityLogService {
   }
 }
 
-export const activityLogService = new ActivityLogService(logRepo, logService.withContext("PostService"), cacheService);
+export const activityLogService = new ActivityLogService(logRepo, logService, cacheService);

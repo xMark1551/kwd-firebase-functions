@@ -1,14 +1,17 @@
 import { db } from "../config/firebase";
 import { InquiryRepository } from "../repositories/inquiry.repo";
 
+import { serviceHandler } from "../middleware/handler";
+
 import { logService, LogService } from "./logger.service";
-import { activityLogService } from "./activity.log.service";
 
 import { CacheService, cacheService } from "../utils/cache";
 import { uploadFile } from "../storage/upload.file";
 import { withFilesRollback } from "../utils/with.rollback";
 import { sendInquiryEmail } from "../utils/emailHelper";
 import { cleanupFiles } from "../storage/deleteFile";
+
+import { NotFoundError } from "../errors";
 
 import { INQUIRY_FOLDER } from "../const/collection.name";
 
@@ -41,87 +44,90 @@ export class InquiryService {
   }
 
   async createInquiry(data: Inquiry, fileToUpload: UploadInput) {
-    console.log("data", data);
     // 1. upload new file if file provided
-    const uploadedFile = fileToUpload && (await uploadFile(INQUIRY_FOLDER, fileToUpload));
+    const uploadedFile =
+      fileToUpload && (await serviceHandler("UPLOAD_FILE", () => uploadFile(INQUIRY_FOLDER, fileToUpload), false));
 
     // 2. get file url
     const fileURL = uploadedFile && uploadedFile.url;
 
-    // 3. update file provided has been uploaded
+    // 3. update file provided
     if (uploadedFile) {
       data.file = uploadedFile;
-      this.logger.info("File uploaded", uploadedFile);
     }
 
     // 4. create inquiry
-    const result = await withFilesRollback(fileURL, () => this.inquiryRepo.create(data));
-
-    // 5. create activity log
-    await activityLogService.info("CREATE_INQUIRY", `Inquiry created by ${data.name}`, data);
-
-    this.logger.info("Inquiry created successfully", { result });
+    await serviceHandler("CREATE_INQUIRY", () => withFilesRollback(fileURL, () => this.inquiryRepo.create(data)));
 
     // 5. send email to admin
-    await sendInquiryEmail({
-      to: "markkings1551@yahoo.com",
-      name: data.name,
-      subject: data.reason,
-      message: data.message,
-      attachmentUrl: data.file?.url,
-    });
-
-    this.logger.info("Email sent successfully");
+    await serviceHandler("SEND_INQUIRY_EMAIL", () =>
+      sendInquiryEmail({
+        to: "markkings1551@yahoo.com",
+        name: data.name,
+        email: data.email,
+        subject: data.reason,
+        message: data.message,
+        attachmentUrl: data.file?.url,
+      }),
+    );
 
     // 6. invalidate cache
     await this.invalidateInquiryCache();
 
     // 7. return
-    return result;
+    return;
   }
 
   async toggleReadStatus(id: string): Promise<void> {
-    const result = await inquiryRepo.toggleReadStatus(id);
+    //1. Fetch doc
+    const doc = await this.inquiryRepo.getById(id);
+
+    if (!doc) throw new NotFoundError("Document not found");
+
+    //2. Toggle read status
+    const newIsRead = !doc.isRead;
+
+    //3. Update Firestore
+    await this.inquiryRepo.update(id, { isRead: newIsRead });
+
+    //4. Invalidate cache
+    await this.invalidateInquiryCache();
 
     this.logger.info("Read status updated successfully", { id });
 
-    await this.invalidateInquiryCache();
-    return result;
+    return;
   }
 
   async markAllAsRead(ids: string[]): Promise<void> {
-    const result = await inquiryRepo.markAllAsRead(ids);
+    await inquiryRepo.markAllAsRead(ids);
 
     this.logger.info("Read status updated successfully", { ids });
 
     await this.invalidateInquiryCache();
-    return result;
+    return;
   }
 
-  async deleteInquiry(id: string): Promise<void> {
+  async deleteInquiry(id: string) {
     // 1. Fetch file url
     const inquiry = await this.inquiryRepo.getById(id);
 
-    if (!inquiry) throw new Error("Document not found");
+    if (!inquiry) throw new NotFoundError("Document not found");
 
     // 2. Get file url and delete
     const fileURL = inquiry.file && inquiry.file.url;
-    if (fileURL) {
-      const { results } = await cleanupFiles(fileURL);
-      this.logger.info("File Deleted", { results });
-    }
 
-    // 3. Delete inquiry
-    const result = await inquiryRepo.delete(id);
+    // 3. Delete file
+    if (fileURL) await cleanupFiles(fileURL);
 
-    this.logger.info("Inquiry deleted successfully", { id });
+    // 4. Delete inquiry
+    await serviceHandler("DELETE_INQUIRY", () => inquiryRepo.delete(id));
 
     await this.invalidateInquiryCache();
 
-    return result;
+    return;
   }
 
-  async bulkDeleteInquiries(ids: string[]): Promise<void> {
+  async bulkDeleteInquiries(ids: string[]) {
     // 1. fetch all doc data to get file urls
     const docData = await this.inquiryRepo.getByIds(ids);
 
@@ -132,9 +138,7 @@ export class InquiryService {
     this.logger.info("Storage cleanup summary", { deleted, results });
 
     // 3. delete files from Firebase Storage
-    await this.inquiryRepo.bulkDelete(ids);
-
-    this.logger.info("Inquiries deleted", { ids });
+    await serviceHandler("BULK_DELETE_INQUIRY", () => this.inquiryRepo.bulkDelete(ids));
 
     await this.invalidateInquiryCache();
 

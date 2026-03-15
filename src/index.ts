@@ -10,4 +10,5 @@ export const api = onRequest(app);
 
 export * from "./trigger/algolia.write";
 export { backfillAlgolia } from "./functions/http.function/backfill.http";
+export { setAdmin } from "./functions/http.function/set.admin.http";
 export { cleanupOldLogs } from "./scheduled/logCleanup.function";

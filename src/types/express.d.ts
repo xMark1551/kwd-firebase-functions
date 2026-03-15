@@ -1,5 +1,5 @@
 import "express";
-import type { AuthedUser } from "../middleware/auth";
+import type { AuthedUser } from "../model/auth.model.schema";
 import type { UploadInput } from "../config/storage";
 
 declare global {

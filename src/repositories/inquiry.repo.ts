@@ -3,8 +3,6 @@ import { FirestoreRepository } from "./base.repository";
 
 import { INQUIRY_COLLECTION } from "../const/collection.name";
 
-import { cleanupFiles } from "../storage/deleteFile";
-
 import { Timestamp } from "firebase-admin/firestore";
 
 import { inquirySchema, Inquiry } from "../model/inquiry.model.schema";
@@ -14,7 +12,7 @@ export class InquiryRepository extends FirestoreRepository<Inquiry> {
     super(db, INQUIRY_COLLECTION, inquirySchema);
   }
 
-  async toggleReadStatus(id: string): Promise<void> {
+  async toggleReadStatus(id: string) {
     const doc = await this.getById(id);
 
     if (!doc) throw new Error("Document not found");
@@ -23,33 +21,15 @@ export class InquiryRepository extends FirestoreRepository<Inquiry> {
     const newIsRead = !doc.isRead;
 
     //3. Update Firestore
-    await this.update(id, { isRead: newIsRead });
+    const result = await this.update(id, { isRead: newIsRead });
+
+    return result;
   }
 
-  async markAllAsRead(ids: string[]): Promise<void> {
-    await this.bulkUpdate(ids.map((id) => ({ id, patch: { isRead: true } })));
-  }
+  async markAllAsRead(ids: string[]): Promise<{ updatedIds: string[] }> {
+    const result = await this.bulkUpdate(ids.map((id) => ({ id, patch: { isRead: true } })));
 
-  async deleteInquiry(id: string): Promise<void> {
-    const docData = (await this.getById(id)) as Inquiry;
-
-    if (!docData) throw new Error("Document not found");
-
-    if (docData.file) await cleanupFiles(docData.file.url);
-
-    await this.delete(id);
-  }
-
-  async bulkDeleteInquiries(ids: string[]): Promise<void> {
-    // read all docs to get file urls
-    const docData = await this.getByIds(ids);
-
-    // collect only valid file URLs
-    const files = docData.map((doc) => doc.file?.url).filter((url): url is string => Boolean(url)); // only keep valid strings
-    cleanupFiles(files);
-
-    // delete files from Firebase Storage
-    await this.bulkDelete(ids);
+    return result;
   }
 
   async CurrentMonthInquiryCount(): Promise<{ count: number }> {

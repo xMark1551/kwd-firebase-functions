@@ -1,7 +1,6 @@
 // src/repositories/base.repository.ts
 import type { CollectionReference, DocumentData, Firestore, Query, Transaction } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
-
 import { Timestamp } from "firebase-admin/firestore";
 
 import type { DocumentReference, SetOptions, UpdateData } from "firebase-admin/firestore";
@@ -51,6 +50,11 @@ export type PaginatedResult<T> = {
   nextCursor: PageCursor | null;
 };
 
+export type UpdateResult<T> = {
+  before: T;
+  after: T;
+};
+
 const MAX_BATCH_SIZE = 500; // Firestore hard limit per batch
 
 // import type { WithId, BaseDoc } from "./types";
@@ -70,31 +74,38 @@ export class FirestoreRepository<T extends BaseDoc> {
     return this.col().doc(id);
   }
 
+  protected normalizeTimestamps(data: any) {
+    if (data.createdAt) data.createdAt = (data.createdAt as Timestamp).toMillis();
+    if (data.updatedAt) data.updatedAt = (data.updatedAt as Timestamp).toMillis();
+
+    return data;
+  }
+
   // helper to validate Firestore data
   protected validateData(data: any, toClient = true): T {
     if (!this.schema) {
       // fallback: just normalize timestamps
-      const normalized = { ...data };
-      if (toClient) {
-        if (normalized.createdAt) normalized.createdAt = (normalized.createdAt as Timestamp).toMillis();
-        if (normalized.updatedAt) normalized.updatedAt = (normalized.updatedAt as Timestamp).toMillis();
-      }
-
+      const normalized = this.normalizeTimestamps(data);
       return normalized as T;
     }
 
     // Zod validation, strips unknown fields
-    const parsed = this.schema.parse(data);
+    const result = this.schema.safeParse(data);
+
+    // fallback: just normalize timestamps if validation fails
+    if (!result.success) {
+      const normalized = this.normalizeTimestamps(data);
+
+      return normalized as T;
+    }
 
     // normalize timestamps if requested
     if (toClient) {
-      const withTimestamps = { ...parsed } as any;
-      if (withTimestamps.createdAt) withTimestamps.createdAt = (withTimestamps.createdAt as Timestamp).toMillis();
-      if (withTimestamps.updatedAt) withTimestamps.updatedAt = (withTimestamps.updatedAt as Timestamp).toMillis();
+      const withTimestamps = this.normalizeTimestamps(result.data);
       return withTimestamps as T;
     }
 
-    return parsed;
+    return result.data as T;
   }
 
   /**
@@ -189,15 +200,21 @@ export class FirestoreRepository<T extends BaseDoc> {
     return this.validateData({ ...payload, id: ref.id }) as WithId<T>;
   }
 
-  async update(id: string, patch: Partial<T>): Promise<WithId<T>> {
+  async update(id: string, patch: Partial<T>): Promise<UpdateResult<T>> {
     const ref = this.col().doc(id);
+    const snap = await ref.get();
+    const doc = snap.data();
 
     await ref.update({
       ...(patch as object),
       updatedAt: FieldValue.serverTimestamp(),
     });
 
-    return { id, ...patch } as WithId<T>;
+    // Return client-friendly (timestamps not resolved yet)
+    const newData = { ...doc, ...patch } as T;
+    const oldData = { ...doc } as T;
+
+    return { before: oldData, after: newData };
   }
 
   async bulkUpdate(
@@ -252,8 +269,9 @@ export class FirestoreRepository<T extends BaseDoc> {
     );
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string): Promise<{ id: string }> {
     await this.col().doc(id).delete();
+    return { id };
   }
 
   async bulkDelete(ids: string[]): Promise<{ deletedIds: string[]; failedIds: string[] }> {
@@ -452,7 +470,7 @@ export class FirestoreRepository<T extends BaseDoc> {
     const data = docs.map((d) => {
       const doc = d.data() as T;
       return this.validateData({ id: d.id, ...doc });
-    });
+    }) as T[];
 
     const last = docs[docs.length - 1];
     const first = docs[0];
