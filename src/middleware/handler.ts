@@ -45,6 +45,7 @@ export const errorHandler = async (err: any, req: Request, res: Response, next: 
     "RATE_LIMIT_EXCEEDED",
     "UNAUTHORIZED_ACCESS",
     "BAD_REQUEST",
+    "RATE_LIMIT",
   ]);
 
   if (AUDIT_ERRORS.has(err.code)) {
