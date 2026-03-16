@@ -3,13 +3,7 @@ import { getAuth } from "firebase-admin/auth";
 
 import { logService } from "../services/logger.service";
 import { UnauthorizedError, ForbiddenError } from "../errors";
-
-export type AuthedUser = {
-  uid: string;
-  admin?: boolean;
-  claims: Record<string, any>;
-  username?: string;
-};
+import type { AuthedUser } from "../model/auth.model.schema";
 
 // export type HttpHandler = (req: Request, res: Response, user: AuthedUser) => Promise<void>;
 
@@ -23,10 +17,11 @@ export const auth: RequestHandler = async (req, res, next) => {
     const decoded = await getAuth().verifyIdToken(token);
 
     req.user = {
+      ip: req.ip || "",
       uid: decoded.uid,
       admin: decoded.admin === true,
-      claims: decoded,
       username: decoded.username ?? "",
+      email: decoded.email ?? "",
     };
 
     logService.info(`[${req.method}] ${req.path}`, {

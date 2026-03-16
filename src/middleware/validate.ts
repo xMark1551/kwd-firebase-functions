@@ -1,15 +1,14 @@
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import type { ZodSchema } from "zod";
 
-import { ValidationError } from "../errors";
+import { BadRequestError } from "../errors";
 
 export const validateBody = (schema: ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
-  console.log("Validating body", req.body);
   const result = schema.safeParse(req.body);
 
   if (!result.success) {
     return next(
-      new ValidationError("Validation failed", {
+      new BadRequestError("Validation failed", {
         details: result.error.flatten().fieldErrors,
       }),
     );
@@ -21,12 +20,11 @@ export const validateBody = (schema: ZodSchema) => (req: Request, res: Response,
 };
 
 export const validateQuery = (schema: ZodSchema) => (req: Request, res: Response, next: NextFunction) => {
-  console.log("Validating query", req.query);
   const result = schema.safeParse(req.query);
 
   if (!result.success) {
     return next(
-      new ValidationError("Validation failed", {
+      new BadRequestError("Validation failed", {
         details: result.error.flatten().fieldErrors,
       }),
     );
@@ -40,12 +38,11 @@ export const validateQuery = (schema: ZodSchema) => (req: Request, res: Response
 export const validateParams =
   (schema: ZodSchema): RequestHandler =>
   (req, res, next) => {
-    console.log("Validating params", req.params);
     const result = schema.safeParse(req.params);
 
     if (!result.success) {
       return next(
-        new ValidationError("Validation failed", {
+        new BadRequestError("Validation failed", {
           details: result.error.flatten().fieldErrors,
         }),
       );

@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
-
 import { asyncHandler } from "../middleware/handler";
+import { ok } from "../utils/reponse";
 
 import { transparencyService } from "../services/transparency.service";
 
@@ -9,11 +9,9 @@ export const createTransparencyController = asyncHandler(async (req: Request, re
   const data = req.body;
   const fileToUpload = req.filesToUpload[0];
 
-  await transparencyService.createTransparency(user, data, fileToUpload);
+  const response = await transparencyService.createTransparency(user, data, fileToUpload);
 
-  res.status(200).json({
-    ok: true,
-  });
+  ok(res, response, "Transparency created");
 });
 
 export const createTransparencyFolderController = asyncHandler(async (req: Request, res: Response) => {
@@ -22,10 +20,7 @@ export const createTransparencyFolderController = asyncHandler(async (req: Reque
 
   const response = await transparencyService.createTransparencyFolder(user, data);
 
-  res.status(200).json({
-    ok: true,
-    data: { id: response },
-  });
+  ok(res, response, "Transparency folder created");
 });
 
 export const getPaginatedTransparencyController = asyncHandler(async (req: Request, res: Response) => {
@@ -33,12 +28,7 @@ export const getPaginatedTransparencyController = asyncHandler(async (req: Reque
 
   const response = await transparencyService.getPaginatedTransparencyWithCount(query);
 
-  res.status(200).json({
-    ok: true,
-    items: response.items,
-    meta: response.meta,
-    nextCursor: response.nextCursor,
-  });
+  ok(res, response, "Transparency fetched");
 });
 
 export const getTotalTransparencyCountController = asyncHandler(async (req: Request, res: Response) => {
@@ -46,7 +36,7 @@ export const getTotalTransparencyCountController = asyncHandler(async (req: Requ
 
   const response = await transparencyService.getTotalTransparencyCount(query);
 
-  res.status(200).json({ count: response });
+  ok(res, response, "Transparency total count fetched");
 });
 
 export const getTransparencyFolderController = asyncHandler(async (req: Request, res: Response) => {
@@ -54,7 +44,7 @@ export const getTransparencyFolderController = asyncHandler(async (req: Request,
 
   const response = await transparencyService.getTransparencyFolder(query);
 
-  res.status(200).json(response);
+  ok(res, response, "Transparency folder fetched");
 });
 
 export const getTransparencyWithFiltersController = asyncHandler(async (req: Request, res: Response) => {
@@ -62,7 +52,7 @@ export const getTransparencyWithFiltersController = asyncHandler(async (req: Req
 
   const response = await transparencyService.getTransparencyWithFilters(query);
 
-  res.status(200).json(response);
+  ok(res, response, "Transparency fetched");
 });
 
 export const patchTransparencyController = asyncHandler(async (req: Request, res: Response) => {
@@ -70,56 +60,46 @@ export const patchTransparencyController = asyncHandler(async (req: Request, res
   const data = req.body;
   const fileToUpload = req.filesToUpload[0];
 
-  await transparencyService.patchTransparency(id, data, fileToUpload);
+  const response = await transparencyService.patchTransparency(id, data, fileToUpload);
 
-  res.status(200).json({
-    ok: true,
-  });
+  ok(res, response, "Transparency updated");
 });
 
 export const patchTransparencyFolderController = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
   const data = req.body;
 
-  await transparencyService.updateTransparencyFolder(id, data);
+  const response = await transparencyService.updateTransparencyFolder(id, data);
 
-  res.status(200).json({
-    ok: true,
-  });
+  ok(res, response, "Transparency folder updated");
 });
 
 export const deleteTransparencyController = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
 
-  await transparencyService.deleteTransparency(id);
+  const response = await transparencyService.deleteTransparency(id);
 
-  res.status(200).json({
-    ok: true,
-  });
+  ok(res, response, "Transparency deleted");
 });
 
 export const bulkDeleteTransparencyController = asyncHandler(async (req: Request, res: Response) => {
   const ids = req.body;
 
-  await transparencyService.bulkDeleteTransparency(ids);
+  const response = await transparencyService.bulkDeleteTransparency(ids);
 
-  res.status(200).json({
-    ok: true,
-  });
+  ok(res, response, "Transparency bulk deleted");
 });
 
 export const deleteTransparencyFolderController = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
 
-  await transparencyService.deleteTransparencyFolder(id);
+  const response = await transparencyService.deleteTransparencyFolder(id);
 
-  res.status(200).json({
-    ok: true,
-  });
+  ok(res, response, "Transparency folder deleted");
 });
 
 export const getTransparencyCountThisYearController = asyncHandler(async (req: Request, res: Response) => {
   const response = await transparencyService.fetchTransparencyThisYear();
 
-  res.status(200).json(response);
+  ok(res, response, "Transparency count fetched");
 });

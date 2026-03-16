@@ -1,8 +1,8 @@
-import { db } from "../config/firebase";
-
 import { Timestamp } from "firebase-admin/firestore"; // <-- use this
-
+import { db } from "../config/firebase";
 import cronParser from "cron-parser";
+
+import { serviceHandler } from "../middleware/handler";
 
 import { SettingsRepository } from "../repositories/settings.repository";
 import { ActivityLogRepository } from "../repositories/activity.log.repository";
@@ -46,11 +46,11 @@ export class SettingsService {
       settings.nextRun = Timestamp.fromDate(nextRunDate); // <-- fixed
     }
 
-    const result = await settingsRepo.updateLogCleanupSettings(settings);
+    await serviceHandler("UPDATE_LOG_CLEANUP_SETTINGS", () => settingsRepo.updateLogCleanupSettings(settings));
 
     await this.invalidateLogCleanupSettingsCache();
 
-    return result;
+    return;
   }
 }
 

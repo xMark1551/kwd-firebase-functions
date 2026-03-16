@@ -11,7 +11,7 @@ import {
   bulkDeleteInquiriesController,
 } from "../controller/inquiry";
 
-import { requireAdmin } from "../middleware/middleware";
+import { requireAdmin } from "../middleware/auth";
 import { multipartBusboy } from "../middleware/multipart.busboy";
 import { verifyRecaptchaToken } from "../middleware/verify.recaptcha.token";
 import { validateBody, validateQuery, validateParams } from "../middleware/validate";

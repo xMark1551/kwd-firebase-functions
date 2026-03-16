@@ -21,12 +21,29 @@ export const metaSchema = z.object({
 });
 export type Meta = z.infer<typeof metaSchema>;
 
+export const authorSchema = z.object({
+  uid: z.string(),
+  admin: z.boolean(),
+  email: z.string(),
+});
+
+export type Author = z.infer<typeof authorSchema>;
+
+export const targetSchema = z.object({
+  snapshot: z.any().optional(),
+});
+
+export type Target = z.infer<typeof targetSchema>;
+
 export const createActivityLogSchema = z.object({
-  level: z.string(),
-  status: z.number().optional(),
+  severity: z.string(),
+  author: authorSchema.nullable(),
   action: z.string(),
-  message: z.string().optional(),
-  meta: metaSchema.optional(),
+  target: targetSchema,
+  status: z.string(),
+  code: z.number(),
+  reason: z.string().optional(),
+  ip: z.string().optional(),
 });
 
 export const activityLogFilterSchema = z.object({

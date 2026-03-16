@@ -4,6 +4,7 @@ import { logService, LogService } from "./logger.service";
 import { activityLogService } from "./activity.log.service";
 
 import type { LoginInput } from "../validation/auth.schema";
+import type { User } from "../model/auth.model.schema";
 
 export class AuthService {
   constructor(private readonly logger: LogService) {}
@@ -37,15 +38,25 @@ export class AuthService {
     const userRecord = await auth.getUser(data.localId);
     const isAdmin = !!userRecord.customClaims?.admin;
 
-    // 3. Create activity log
-    await activityLogService.info("LOGIN", `User logged in`, {
+    const user: User = {
       admin: isAdmin,
       uid: data.localId,
       email: data.email,
-      displayName: data.displayName,
+      username: data.displayName ?? "",
+      customToken: customToken,
+    };
+
+    // 3. Create activity log
+    await activityLogService.success("LOGIN", {
+      snapshot: {
+        context: {
+          name: user.username,
+          email: user.email,
+        },
+      },
     });
 
-    return customToken;
+    return user;
   }
 }
 

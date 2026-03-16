@@ -14,7 +14,7 @@ import {
   getTransparencyCountThisYearController,
 } from "../controller/transparency";
 
-import { requireAdmin } from "../middleware/middleware";
+import { requireAdmin } from "../middleware/auth";
 import { multipartBusboy } from "../middleware/multipart.busboy";
 import { validateBody, validateQuery, validateParams } from "../middleware/validate";
 import {

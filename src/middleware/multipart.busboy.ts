@@ -2,6 +2,7 @@ import Busboy from "busboy";
 import type { RequestHandler } from "express";
 import type { UploadInput } from "../storage/upload";
 import { matchesAllowed } from "../utils/multiplart.helper";
+import { BadRequestError, RateLimitError } from "../errors";
 
 type MultipartOpts = {
   maxFiles?: number;
@@ -64,8 +65,7 @@ export const multipartBusboy = (opts?: MultipartOpts): RequestHandler => {
       fileCount += 1;
       if (fileCount > maxFiles) {
         file.resume();
-        fail(`Too many files (max ${maxFiles})`);
-        return;
+        throw new BadRequestError(`Too many files (max ${maxFiles})`);
       }
 
       const filename = info.filename || "";
@@ -84,11 +84,7 @@ export const multipartBusboy = (opts?: MultipartOpts): RequestHandler => {
 
         if (!okWithFallback) {
           file.resume();
-          fail(
-            `Unsupported file type`,
-            `got mime="${mimeType || "unknown"}" filename="${filename}" allowed=${allowedTypes.join(", ")}`,
-          );
-          return;
+          throw new BadRequestError(`File type not allowed`, { allowedTypes });
         }
       }
 
@@ -103,7 +99,7 @@ export const multipartBusboy = (opts?: MultipartOpts): RequestHandler => {
       file.on("limit", () => {
         hitLimit = true;
         file.resume();
-        fail(`File too large (>${maxFileSizeBytes} bytes)`);
+        throw new RateLimitError("File size limit exceeded", { limit: maxFileSizeBytes });
       });
 
       file.on("error", (err) => {

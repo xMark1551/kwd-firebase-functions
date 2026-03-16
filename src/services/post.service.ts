@@ -1,21 +1,22 @@
 import { db } from "../config/firebase";
 import { NewsRepository } from "../repositories/post.repository";
 
+import { serviceHandler } from "../middleware/handler";
+
 import { LogService, logService } from "./logger.service";
 import { searchService } from "./algolia/algolia.search.service";
 
-// helper
 import { CacheService, cacheService } from "../utils/cache";
 
 import { uploadFiles } from "../storage/upload.files";
 import { withFilesRollback } from "../utils/with.rollback";
 import { filterBuilder } from "../utils/filter.builder";
 
-import { NotFoundError } from "../errors/not-found.error";
+import { NotFoundError, BadRequestError } from "../errors";
 
 import { NEWS_AND_UPDATES_FOLDER } from "../const/collection.name";
 
-import type { AuthedUser } from "../middleware/auth";
+import type { AuthedUser } from "../model/auth.model.schema";
 import type { GetPaginatedPostQuery } from "../validation/post.schema";
 import type { CreatePost, PatchPost, PostFilter } from "../validation/post.schema";
 import type { UploadInput } from "../storage/upload";
@@ -48,25 +49,28 @@ export class PostService {
   // ------------------- WRITES -------------------
 
   async createPost(user: AuthedUser, data: CreatePost, filesToUpload: UploadInput[]) {
-    const uploadUrls = filesToUpload?.length ? await uploadFiles(NEWS_AND_UPDATES_FOLDER, filesToUpload) : [];
+    const uploadUrls = filesToUpload?.length
+      ? await serviceHandler("UPLOAD FILES", () => uploadFiles(NEWS_AND_UPDATES_FOLDER, filesToUpload), false)
+      : [];
 
     if (uploadUrls.length) this.logger.info("Files uploaded", { files: uploadUrls });
 
-    const post = await withFilesRollback(uploadUrls, () =>
-      this.postRepo.createWithCounters({ ...data, authorId: user.uid, files: uploadUrls }),
+    await serviceHandler("CREATE POST", () =>
+      withFilesRollback(uploadUrls, () =>
+        this.postRepo.createWithCounters({ ...data, authorId: user.uid, files: uploadUrls }),
+      ),
     );
-
-    this.logger.info("Post created", post);
 
     await this.invalidatePostCache();
 
-    return post;
+    return;
   }
 
   async patchPost(id: string, data: PatchPost, filesToUpload: UploadInput[]) {
-    console.log("patchPost", data);
     // 1. upload files
-    const uploadUrls = filesToUpload?.length ? await uploadFiles(NEWS_AND_UPDATES_FOLDER, filesToUpload) : [];
+    const uploadUrls = filesToUpload?.length
+      ? await serviceHandler("UPLOAD FILES", () => uploadFiles(NEWS_AND_UPDATES_FOLDER, filesToUpload), false)
+      : [];
 
     // 2. collect all files url with old and new url if file has changes only
     const fileUrls = [...(data.files || []), ...uploadUrls];
@@ -78,31 +82,47 @@ export class PostService {
     }
 
     // 4. update post
-    const post = await withFilesRollback(uploadUrls, () => this.postRepo.patchWithCounters(id, data));
-
-    this.logger.info("Post updated", post);
+    await serviceHandler("PATCH POST", () =>
+      withFilesRollback(uploadUrls, () => this.postRepo.patchWithCounters(id, data)),
+    );
 
     // 5. invalidate cache
     await this.invalidatePostCache();
 
     // 6. return
-    return post;
+    return;
   }
 
   async setFeaturedPost(id: string) {
-    const result = await this.postRepo.updateFeaturedPost(id);
+    const doc = await this.postRepo.getById(id);
 
-    this.logger.info("Set featured post", { id });
+    if (!doc) throw new NotFoundError("Post not found");
+
+    const newIsFeatured = !doc.isFeatured;
+    const isPublished = doc.status === "Published";
+
+    // fetch featured post
+    const featuredPost = await this.postRepo.featuredPostList();
+
+    // only published posts can be featured
+    if (!isPublished && newIsFeatured) {
+      throw new BadRequestError("Only published posts can be featured");
+    }
+
+    // only 2 posts can be featured at a time
+    if (featuredPost.length > 2 && newIsFeatured) {
+      throw new BadRequestError("Only 2 posts can be featured at a time");
+    }
+
+    await serviceHandler("PATCH POST", () => this.postRepo.update(id, { isFeatured: newIsFeatured }));
 
     await this.invalidatePostCache();
 
-    return result;
+    return;
   }
 
   async deletePost(id: string) {
-    await this.postRepo.deletePostWithCounters(id);
-
-    this.logger.info("Post deleted", { id });
+    await serviceHandler("DELETE POST", () => this.postRepo.deletePostWithCounters(id));
 
     await this.invalidatePostCache();
 
@@ -110,9 +130,7 @@ export class PostService {
   }
 
   async bulkDeletePosts(ids: string[]) {
-    await this.postRepo.deleteBulkWithCounters(ids);
-
-    this.logger.info("Posts bulk deleted", { ids });
+    await serviceHandler("BULK DELETE POSTS", () => this.postRepo.deleteBulkWithCounters(ids));
 
     await this.invalidatePostCache();
 
@@ -126,8 +144,6 @@ export class PostService {
 
     // Handle filters, if category is latest then remove category filter
     const filters = filterBuilder({ ...filter });
-
-    console.log("filters", filters);
 
     const key = this.key("list", { ...query });
 

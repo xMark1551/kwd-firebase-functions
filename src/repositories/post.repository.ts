@@ -41,7 +41,7 @@ export class NewsRepository extends FirestoreRepository<Post> {
   ): Promise<{ ref: DocumentReference<T>; snap: DocumentSnapshot<T>; doc: T }> {
     const ref = this.col().doc(id) as DocumentReference<T>;
     const snap = await tx.get(ref);
-    const doc = snap.data();
+    const doc = { ...(snap.data() as T), id: snap.id };
 
     if (!doc) throw new Error(`Document with id ${id} not found`);
 
@@ -56,11 +56,11 @@ export class NewsRepository extends FirestoreRepository<Post> {
   ): Promise<{
     refs: DocumentReference<T>[];
     snaps: DocumentSnapshot<T>[];
-    docs: { ref: DocumentReference<T>; data: T }[];
+    docs: { data: T }[];
   }> {
     const refs = ids.map((id) => this.db.collection(col).doc(id) as DocumentReference<T>);
     const snaps = await tx.getAll(...refs);
-    const docs = snaps.filter((s) => s.exists).map((s) => ({ ref: s.ref, data: s.data() as T }));
+    const docs = snaps.filter((s) => s.exists).map((s) => ({ data: { ...(s.data() as T), id: s.id } }));
 
     if (!docs.length) throw new Error(`Documents with ids ${ids} not found`);
 
@@ -120,7 +120,7 @@ export class NewsRepository extends FirestoreRepository<Post> {
     return result;
   }
 
-  async patchWithCounters(id: string, payload: PatchPost): Promise<PatchPost> {
+  async patchWithCounters(id: string, payload: PatchPost): Promise<any> {
     const result = await this.runTx(async (tx) => {
       // READ PHASE
       const { ref, doc } = await this.getDocumentTxById<Post>(tx, id);
@@ -183,36 +183,17 @@ export class NewsRepository extends FirestoreRepository<Post> {
         }
       }
 
-      return { payload, fileUrlsToDelete };
+      // updated post
+      const newData = { ...doc, ...payload };
+      const oldData = doc;
+
+      return { oldData, newData, fileUrlsToDelete };
     });
 
     // Cleanup files (non-blocking)
-    console.log("Cleanup files:", result.fileUrlsToDelete);
     cleanupFiles(result.fileUrlsToDelete);
 
-    return result.payload;
-  }
-
-  async updateFeaturedPost(id: string) {
-    const snap = await this.col().doc(id).get();
-
-    const newIsFeatured = !snap.data()?.isFeatured;
-    const isPublished = snap.data()?.status === "Published";
-
-    // fetch featured post
-    const featuredPost = await this.featuredPostList();
-
-    // only published posts can be featured
-    if (!isPublished && newIsFeatured) {
-      throw new Error("Only published posts can be featured");
-    }
-
-    // only 2 posts can be featured at a time
-    if (featuredPost.length > 2 && newIsFeatured) {
-      throw new Error("Only 2 posts can be featured at a time");
-    }
-
-    return await this.col().doc(id).update({ isFeatured: newIsFeatured });
+    return { before: result.oldData, after: result.newData };
   }
 
   async deletePostWithCounters(id: string) {
@@ -242,13 +223,13 @@ export class NewsRepository extends FirestoreRepository<Post> {
         this.updateCounter(tx, refs.category, categorySnap, -1);
       }
 
-      return { fileUrlsToDelete };
+      return { fileUrlsToDelete, post: doc };
     });
 
     // Cleanup files (non-blocking)
     cleanupFiles(result.fileUrlsToDelete);
 
-    return result;
+    return result.post;
   }
 
   async deleteBulkWithCounters(ids: string[]) {
@@ -289,13 +270,13 @@ export class NewsRepository extends FirestoreRepository<Post> {
         this.updateCounter(tx, ref, snaps, delta);
       });
 
-      return { removedImagesSet };
+      return { removedImagesSet, docs };
     });
 
     // Cleanup files (non-blocking)
     cleanupFiles(Array.from(result.removedImagesSet));
 
-    return;
+    return result.docs;
   }
 
   async getPostArchiveCountByMonth(): Promise<PostArchiveCountByhMonth[]> {

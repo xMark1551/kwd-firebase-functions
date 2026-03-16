@@ -1,8 +1,10 @@
 import fetch from "node-fetch";
+import { activityLogService } from "../services/activity.log.service";
 
 interface InquiryEmailParams {
   to?: string;
   name: string;
+  email: string;
   subject?: string;
   message: string;
   attachmentUrl?: string | null;
@@ -31,8 +33,26 @@ export async function sendInquiryEmail(params: InquiryEmailParams) {
     body: JSON.stringify(payload),
   });
 
+  activityLogService.success("Email sent", {
+    snapshot: {
+      sender: params.name,
+      email: params.email,
+    },
+  });
+
   if (!response.ok) {
     const text = await response.text();
+    activityLogService.fail(
+      "CREATE_INQUIRY",
+      {
+        snapshot: {
+          sender: params.name,
+          email: params.email,
+        },
+      },
+      text,
+    );
+
     throw new Error(`EmailJS failed: ${text}`);
   }
 

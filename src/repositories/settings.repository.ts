@@ -42,9 +42,9 @@ export class SettingsRepository extends FirestoreRepository<LogCleanupSettings> 
     return iso as LogCleanupSettings;
   }
 
-  async updateLogCleanupSettings(settings: Partial<LogCleanupSettings>): Promise<void> {
-    console.log("Updating log cleanup settings with:", settings);
-    await this.set(LOG_CLEANUP_SETTINGS_DOC, settings, { merge: true });
+  async updateLogCleanupSettings(settings: Partial<LogCleanupSettings>) {
+    const result = await this.update(LOG_CLEANUP_SETTINGS_DOC, settings);
+    return result;
   }
 
   async updateLastRun(timestamp: FirebaseFirestore.Timestamp): Promise<void> {

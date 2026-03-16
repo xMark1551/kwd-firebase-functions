@@ -1,5 +1,7 @@
 import type { Request, Response } from "express";
 import { asyncHandler } from "../middleware/handler";
+import { ok } from "../utils/reponse";
+
 import { postService } from "../services/post.service";
 
 export const createPostController = asyncHandler(async (req: Request, res: Response) => {
@@ -7,12 +9,9 @@ export const createPostController = asyncHandler(async (req: Request, res: Respo
   const data = req.body;
   const filesToUpload = req.filesToUpload;
 
-  await postService.createPost(user, data, filesToUpload);
+  const reponse = await postService.createPost(user, data, filesToUpload);
 
-  res.status(200).json({
-    ok: true,
-    message: "Post created",
-  });
+  ok(res, reponse, "Post created");
 });
 
 export const getPaginatedPostController = asyncHandler(async (req: Request, res: Response) => {
@@ -20,12 +19,7 @@ export const getPaginatedPostController = asyncHandler(async (req: Request, res:
 
   const response = await postService.getPaginatedPostWithCount(query);
 
-  res.status(200).json({
-    ok: true,
-    items: response.items,
-    meta: response.meta,
-    nextCursor: response.nextCursor,
-  });
+  ok(res, response, "Post fetched");
 });
 
 export const getTotalPostCountController = asyncHandler(async (req: Request, res: Response) => {
@@ -33,40 +27,38 @@ export const getTotalPostCountController = asyncHandler(async (req: Request, res
 
   const response = await postService.getTotalPostCount(query);
 
-  console.log("response", response);
-
-  res.status(200).json({ count: response });
+  ok(res, response, "Post count fetched");
 });
 
 export const getPostByIdController = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   const response = await postService.getPostById(id);
 
-  res.status(200).json(response);
+  ok(res, response, "Post fetched");
 });
 
 export const getPostArchiveCountByMonthController = asyncHandler(async (req: Request, res: Response) => {
   const response = await postService.getPostArchiveCountByMonth();
 
-  res.status(200).json(response);
+  ok(res, response, "Post archive count fetched");
 });
 
 export const getPostCategoryCountController = asyncHandler(async (req: Request, res: Response) => {
   const response = await postService.getPostCategoryCount();
 
-  res.status(200).json(response);
+  ok(res, response, "Post category count fetched");
 });
 
 export const getPostCurrentMonthCountController = asyncHandler(async (req: Request, res: Response) => {
   const response = await postService.getPostCurrentMonthCount();
 
-  res.status(200).json(response);
+  ok(res, response, "Post current month count fetched");
 });
 
 export const getFeaturedPostController = asyncHandler(async (req: Request, res: Response) => {
   const response = await postService.getFeaturedPost();
 
-  res.status(200).json(response);
+  ok(res, response, "Featured post fetched");
 });
 
 export const patchPostController = asyncHandler(async (req: Request, res: Response) => {
@@ -74,12 +66,9 @@ export const patchPostController = asyncHandler(async (req: Request, res: Respon
   const { id } = req.params as { id: string };
   const filesToUpload = req.filesToUpload;
 
-  await postService.patchPost(id, data, filesToUpload);
+  const response = await postService.patchPost(id, data, filesToUpload);
 
-  res.status(200).json({
-    ok: true,
-    message: "Update created",
-  });
+  ok(res, response, "Post updated");
 });
 
 export const setFeaturedPostController = asyncHandler(async (req: Request<{ id: string }>, res: Response) => {
@@ -87,26 +76,21 @@ export const setFeaturedPostController = asyncHandler(async (req: Request<{ id: 
 
   const response = await postService.setFeaturedPost(id);
 
-  res.status(200).json(response);
+  ok(res, response, "Post featured updated");
 });
 
 export const deletePostController = asyncHandler(async (req: Request<{ id: string }>, res) => {
   const { id } = req.params;
 
-  await postService.deletePost(id);
-  res.status(200).json({
-    ok: true,
-    message: "Post deleted",
-  });
+  const response = await postService.deletePost(id);
+
+  ok(res, response, "Post deleted");
 });
 
 export const bulkDeletePostsController = asyncHandler(async (req: Request, res: Response) => {
   const ids = req.body;
 
-  await postService.bulkDeletePosts(ids);
+  const response = await postService.bulkDeletePosts(ids);
 
-  res.status(200).json({
-    ok: true,
-    message: "Post deleted",
-  });
+  ok(res, response, "Posts deleted");
 });
