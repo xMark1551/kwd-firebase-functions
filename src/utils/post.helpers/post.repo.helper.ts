@@ -1,8 +1,7 @@
 import { getMonthKey } from "../date.converter";
 import type { Post } from "../../model/post.model.schema";
-import type { DocumentReference } from "firebase-admin/firestore";
 
-export function bulkHelper(docs: { ref: DocumentReference<Post>; data: Post }[]) {
+export function bulkHelper(docs: { data: Post }[]) {
   const removedImagesSet: string[] = []; // collect all images to delete (published or not)
   const archiveDeltas = new Map<string, number>(); // monthKey -> delta
   const categoryDeltas = new Map<string, number>(); // category -> delta

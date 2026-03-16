@@ -12,6 +12,8 @@ export async function uploadFiles(
 
   const uploaded: { path: string; url: string }[] = [];
 
+  throw new Error("Not implemented");
+
   try {
     for (let i = 0; i < list.length; i++) {
       const f = list[i];

@@ -2,6 +2,8 @@ import { db } from "../config/firebase";
 import { TransparencyRepository } from "../repositories/transaprency.repository";
 import { TransparencyFolderRepository } from "../repositories/transparencyFolder.repo";
 
+import { serviceHandler } from "../middleware/handler";
+
 import { CacheService, cacheService } from "../utils/cache";
 import { LogService, logService } from "./logger.service";
 import { uploadFile } from "../storage/upload.file";
@@ -9,9 +11,11 @@ import { filterBuilder, buildNormalFilters } from "../utils/filter.builder";
 import { withFilesRollback } from "../utils/with.rollback";
 import { cleanupFiles } from "../storage/deleteFile";
 
+import { NotFoundError } from "../errors";
+
 import { TRANSPARENCY_FOLDER } from "../const/collection.name";
 
-import type { AuthedUser } from "../middleware/auth";
+import type { AuthedUser } from "../model/auth.model.schema";
 import type { UploadInput } from "../storage/upload";
 import type {
   CreateTransparency,
@@ -55,29 +59,31 @@ export class TransparencyService {
 
   // ------------------- WRITES -------------------
   async createTransparency(user: AuthedUser, data: CreateTransparency, fileToUpload: UploadInput) {
-    const uploadedFile = await uploadFile(TRANSPARENCY_FOLDER, fileToUpload);
+    const uploadedFile = await serviceHandler(
+      "UPLOAD_FILE",
+      () => uploadFile(TRANSPARENCY_FOLDER, fileToUpload),
+      false,
+    );
 
     this.logger.info("File uploaded successfully", uploadedFile);
 
-    const result = await withFilesRollback(uploadedFile.url, () =>
-      this.transparencyRepo.create({
-        ...data,
-        authorId: user.uid,
-        file: uploadedFile,
-      }),
+    await serviceHandler("CREATE_TRANSPARENCY", () =>
+      withFilesRollback(uploadedFile.url, () =>
+        this.transparencyRepo.create({
+          ...data,
+          authorId: user.uid,
+          file: uploadedFile,
+        }),
+      ),
     );
-
-    this.logger.info("Transparency created successfully", { result });
 
     await this.invalidateTransparencyCache();
 
-    return result;
+    return;
   }
 
   async createTransparencyFolder(user: AuthedUser, data: CreateTransparencyFolder) {
-    const result = await this.folderRepo.create(data);
-
-    this.logger.info("Folder create successfully", { result });
+    const result = await serviceHandler("CREATE_TRANSPARENCY_FOLDER", () => this.folderRepo.create(data));
 
     await this.invalidateTransparencyCache();
 
@@ -86,7 +92,8 @@ export class TransparencyService {
 
   async patchTransparency(id: string, data: PatchTransparency, fileToUpload: UploadInput) {
     // 1. upload new file
-    const uploadedFile = fileToUpload && (await uploadFile(TRANSPARENCY_FOLDER, fileToUpload));
+    const uploadedFile =
+      fileToUpload && (await serviceHandler("UPLOAD_FILE", () => uploadFile(TRANSPARENCY_FOLDER, fileToUpload), false));
 
     // 2. get new file to replace existing file if file has changes only
     const fileURL = uploadedFile && uploadedFile.url;
@@ -98,39 +105,37 @@ export class TransparencyService {
     }
 
     // 4. update transparency
-    const result = await withFilesRollback(fileURL, async () => {
-      // 1 fetch doc
-      const docData = await this.transparencyRepo.getById(id);
+    await serviceHandler("UPDATE_TRANSPARENCY", () =>
+      withFilesRollback(fileURL, async () => {
+        // 1 fetch doc
+        const docData = await this.transparencyRepo.getById(id);
 
-      // validation
-      if (!docData) throw new Error("Document not found");
+        // validation
+        if (!docData) throw new NotFoundError("Document not found");
 
-      // 2. Get file url to delete
-      const fileUrl = docData.file.url;
-      const { results: deletedFile } = await cleanupFiles(fileUrl);
+        // 2. Get file url to delete
+        const fileUrl = docData.file.url;
+        const { results: deletedFile } = await cleanupFiles(fileUrl);
 
-      this.logger.info("File Deleted", { deletedFile });
+        this.logger.info("File Deleted", { deletedFile });
 
-      return this.transparencyRepo.update(id, data);
-    });
-
-    this.logger.info("Transparency updated succesfully", { result });
+        return this.transparencyRepo.update(id, data);
+      }),
+    );
 
     // 5. invalidate cache
     await this.invalidateTransparencyCache();
 
     // 6. return
-    return result;
+    return;
   }
 
   async updateTransparencyFolder(id: string, payload: PatchTransparencyFolder) {
-    const result = await this.folderRepo.update(id, payload);
-
-    this.logger.info("Folder updated succesfully", { result });
+    await serviceHandler("UPDATE_TRANSPARENCY_FOLDER", () => this.folderRepo.update(id, payload));
 
     await this.invalidateFolderCache();
 
-    return result;
+    return;
   }
 
   async deleteTransparency(id: string) {
@@ -138,7 +143,7 @@ export class TransparencyService {
     const transparency = await this.transparencyRepo.getById(id);
 
     // validation
-    if (!transparency) throw Error("Id not found");
+    if (!transparency) throw new NotFoundError("Id not found");
 
     // 2. Get file url to delete
     const fileUrl = transparency.file.url;
@@ -147,23 +152,21 @@ export class TransparencyService {
     this.logger.info("File Deleted", { deletedFile });
 
     // 3. Delete transparency
-    const result = await this.transparencyRepo.delete(id);
-
-    this.logger.info("Transparency deleted successfully", { result });
+    await serviceHandler("DELETE_TRANSPARENCY", () => this.transparencyRepo.delete(id));
 
     await this.invalidateTransparencyCache();
 
-    return result;
+    return;
   }
 
-  async bulkDeleteTransparency(ids: string[]): Promise<{ deletedIds: string[]; failedIds: string[] }> {
+  async bulkDeleteTransparency(ids: string[]) {
     if (!ids.length) return { deletedIds: [], failedIds: [] };
 
     // 1. Read all docs to get file urls
     const docData = await this.transparencyRepo.getByIds(ids);
 
     // 2. validation
-    if (!docData.length) throw new Error("No docs found");
+    if (!docData.length) throw new NotFoundError("No docs found");
 
     this.logger.info(`Found transparency docs`, { items: docData.length });
 
@@ -174,38 +177,38 @@ export class TransparencyService {
     this.logger.info("Storage cleanup summary", { storageSummary });
 
     // 4. Delete files from Firebase Storage
-    const { deletedIds, failedIds } = await this.transparencyRepo.bulkDelete(ids);
+    const { deletedIds, failedIds } = await serviceHandler("BULK_DELETE_TRANSPARENCY", () =>
+      this.transparencyRepo.bulkDelete(ids),
+    );
 
     if (deletedIds.length > 0) this.logger.info(`Docs Delete`, { docsDeleted: deletedIds.length });
 
-    if (failedIds.length > 0) {
-      this.logger.error("Bulk delete failed", { failedIds });
-      throw new Error(`Failed to delete transparency: ${failedIds.join(", ")}`);
-    }
+    // 5. Invalidate cache
+    await this.invalidateTransparencyCache();
 
     this.logger.info("Bulk delete success", {
       docsDeleted: deletedIds.length,
       filesDeleted: storageSummary.deleted,
     });
 
-    // 5. Invalidate cache
-    await this.invalidateTransparencyCache();
-
     return { deletedIds, failedIds };
   }
 
   async deleteTransparencyFolder(id: string) {
     // 1. fetch all transparency docs in this folder
+    const folder = await this.folderRepo.getById(id);
+
+    // validation
+    if (!folder) throw new NotFoundError("Folder not found");
+
     const transparency = await this.transparencyRepo.listTransparencyByFolderId(id);
     const transparencyIds = transparency.map((transparency) => transparency.id);
 
     // 2. bulk delete transparency docs
-    const transparencyResult = await this.bulkDeleteTransparency(transparencyIds);
+    await this.bulkDeleteTransparency(transparencyIds);
 
     // 3. delete folder
-    await this.folderRepo.delete(id);
-
-    this.logger.info(`Folder deleted successfully`, { folderId: id, transparencyResult });
+    await serviceHandler("DELETE_TRANSPARENCY_FOLDER", () => this.folderRepo.delete(id));
 
     // 4. invalidate cache
     await this.invalidateTransparencyCache();
