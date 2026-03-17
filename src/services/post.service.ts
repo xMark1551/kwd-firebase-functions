@@ -22,7 +22,7 @@ import type { CreatePost, PatchPost, PostFilter } from "../validation/post.schem
 import type { UploadInput } from "../storage/upload";
 import type { PaginatedResult } from "../repositories/base.repository";
 import type { Post } from "../model/post.model.schema";
-import { PageCursor } from "../repositories/base.repository";
+import type { PageCursor } from "../repositories/base.repository";
 
 type PaginatedResultWithCount = Omit<PaginatedResult<Post>, "meta"> & {
   meta: { totalResults: number; totalPages: number };
