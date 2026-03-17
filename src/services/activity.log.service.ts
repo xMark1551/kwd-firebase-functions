@@ -1,5 +1,5 @@
 import { db } from "../config/firebase";
-import { getContext } from "../context/requestContext";
+import { getContext } from "../context/request-context";
 import { ActivityLogRepository } from "../repositories/activity.log.repository";
 
 import { CacheService, cacheService } from "../utils/cache";

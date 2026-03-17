@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { requestContext } from "../context/requestContext";
+import { requestContext } from "../context/request-context";
 import { v4 as uuid } from "uuid";
 
-import type { RequestContext } from "../context/requestContext";
+import type { RequestContext } from "../context/request-context";
 
 export const contextMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const user = req.user;

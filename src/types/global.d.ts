@@ -1,4 +1,4 @@
-import { PaginatedResult } from "./repositories/base.repository";
+import { PaginatedResult } from "../repositories/base.repository";
 
 declare global {
   type Pagination<T> = {

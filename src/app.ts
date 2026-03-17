@@ -1,7 +1,7 @@
 import express from "express";
 import { corsConfig } from "./middleware/cors";
 import { auth } from "./middleware/auth";
-import { contextMiddleware } from "./middleware/contextMiddleware";
+import { contextMiddleware } from "./middleware/context-middleware";
 import { errorHandler } from "./middleware/handler";
 
 import dotenv from "dotenv";
