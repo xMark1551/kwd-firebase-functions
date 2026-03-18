@@ -126,6 +126,8 @@ export class ActivityLogService {
 
     const filters = filterBuilder({ ...activityLogFilters });
 
+    console.log("filters", filters);
+
     const key = this.key("list", { ...query });
 
     return await this.cache.cacheAside(key, () => this.logRepo.getPaginated({ page, pageSize, cursor, filters }));

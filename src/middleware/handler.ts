@@ -50,7 +50,13 @@ export const errorHandler = async (err: any, req: Request, res: Response, next: 
 
   if (AUDIT_ERRORS.has(err.code)) {
     try {
-      await activityLogService.fail(err.code, {}, err.message);
+      await activityLogService.fail(
+        err.code,
+        {
+          snapshot: err.meta ?? {},
+        },
+        err.message,
+      );
     } catch (error) {
       console.error("Failed to log activity:", error);
     }

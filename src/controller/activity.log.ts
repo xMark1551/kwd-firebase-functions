@@ -6,6 +6,7 @@ import { activityLogService } from "../services/activity.log.service";
 
 export const getPaginatedLogsController = asyncHandler(async (req: Request, res: Response) => {
   const query = req.validatedQuery;
+
   const logs = await activityLogService.getPaginatedLogsWithTotalCount(query);
 
   ok(res, logs, "Logs fetched");

@@ -7,8 +7,12 @@ export const validateBody = (schema: ZodSchema) => (req: Request, res: Response,
   const result = schema.safeParse(req.body);
 
   if (!result.success) {
+    const fieldErrors = result.error.flatten().fieldErrors;
+
+    const firstError = Object.values(fieldErrors as Record<string, string[]>)[0]?.[0] || "Validation failed";
+
     return next(
-      new BadRequestError("Validation failed", {
+      new BadRequestError(firstError, {
         details: result.error.flatten().fieldErrors,
       }),
     );

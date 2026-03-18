@@ -1,26 +1,6 @@
 import { z } from "zod";
 import { paginationSchema } from "./pagination.schema";
 
-export const metaSchema = z.object({
-  user: z
-    .object({
-      uid: z.string(),
-      username: z.string(),
-      admin: z.boolean(),
-    })
-    .nullable(),
-  method: z.string(),
-  path: z.string().optional(),
-  ip: z.string().optional(),
-  userAgent: z.string().optional(),
-  body: z.any().optional(),
-  params: z.any().optional(),
-  query: z.any().optional(),
-  data: z.any().optional(),
-  details: z.any().optional(),
-});
-export type Meta = z.infer<typeof metaSchema>;
-
 export const authorSchema = z.object({
   uid: z.string(),
   admin: z.boolean(),
@@ -47,7 +27,9 @@ export const createActivityLogSchema = z.object({
 });
 
 export const activityLogFilterSchema = z.object({
-  level: z.enum(["ALL", "ERROR", "WARN", "INFO", "DEBUG"]).optional(),
+  status: z.string().optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
 });
 export const getPaginatedActivityLogsSchema = z.object({
   ...paginationSchema.shape,
