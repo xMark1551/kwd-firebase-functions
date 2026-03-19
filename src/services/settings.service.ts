@@ -7,7 +7,7 @@ import { serviceHandler } from "../middleware/handler";
 import { SettingsRepository } from "../repositories/settings.repository";
 import { ActivityLogRepository } from "../repositories/activity.log.repository";
 
-import { LogCleanupSettings } from "../model/setting.model.schema";
+import { LogCleanupSettings } from "../validation/log-cleanup-settings.schema";
 import { CacheService, cacheService } from "../utils/cache";
 
 const settingsRepo = new SettingsRepository(db);

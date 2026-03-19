@@ -33,7 +33,6 @@ export const createInquirySchema = z.object({
   ),
   isRead: z.boolean().default(false),
 });
-export type CreateInquiry = z.infer<typeof createInquirySchema>;
 
 export const inquiryFilterSchema = z.object({
   category: z.string().optional(),
@@ -43,7 +42,28 @@ export const inquiryFilterSchema = z.object({
 export const getPaginatedInquiriesSchema = paginationSchema.merge(
   z.object({ filters: inquiryFilterSchema.optional() }),
 );
-export type GetPaginatedInquiries = z.infer<typeof getPaginatedInquiriesSchema>;
 
 export const getTotalInquiryCount = inquiryFilterSchema;
+
+export const inquirySchema = z.object({
+  id: z.string(),
+  reason: z.string(),
+  name: z.string(),
+  email: z.string(),
+  message: z.string(),
+  file: z
+    .object({
+      name: z.string(),
+      url: z.string(),
+    })
+    .optional(),
+  isAgree: z.boolean(),
+  isRead: z.boolean(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+});
+
+export type CreateInquiry = z.infer<typeof createInquirySchema>;
+export type GetPaginatedInquiries = z.infer<typeof getPaginatedInquiriesSchema>;
 export type GetTotalInquiryCount = z.infer<typeof getTotalInquiryCount>;
+export type Inquiry = z.infer<typeof inquirySchema>;

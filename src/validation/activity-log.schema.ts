@@ -7,13 +7,9 @@ export const authorSchema = z.object({
   email: z.string(),
 });
 
-export type Author = z.infer<typeof authorSchema>;
-
 export const targetSchema = z.object({
   snapshot: z.any().optional(),
 });
-
-export type Target = z.infer<typeof targetSchema>;
 
 export const createActivityLogSchema = z.object({
   severity: z.string(),
@@ -36,6 +32,23 @@ export const getPaginatedActivityLogsSchema = z.object({
   filters: activityLogFilterSchema.optional(),
 });
 
+export const activityLogSchema = z.object({
+  id: z.string(),
+  severity: z.string(),
+  author: authorSchema.nullable(),
+  action: z.string(),
+  target: targetSchema,
+  status: z.string(),
+  code: z.number(),
+  reason: z.string().optional(),
+  ip: z.string().optional(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+});
+
+export type Author = z.infer<typeof authorSchema>;
+export type Target = z.infer<typeof targetSchema>;
 export type CreateActivityLog = z.infer<typeof createActivityLogSchema>;
 export type ActivityLogFilter = z.infer<typeof activityLogFilterSchema>;
 export type GetPaginatedActivityLogs = z.infer<typeof getPaginatedActivityLogsSchema>;
+export type ActivityLog = z.infer<typeof activityLogSchema>;

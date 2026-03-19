@@ -16,12 +16,12 @@ import { NotFoundError, BadRequestError } from "../errors";
 
 import { NEWS_AND_UPDATES_FOLDER } from "../const/collection.name";
 
-import type { AuthedUser } from "../model/auth.model.schema";
+import type { AuthedUser } from "../validation/auth.schema";
 import type { GetPaginatedPostQuery } from "../validation/post.schema";
 import type { CreatePost, PatchPost, PostFilter } from "../validation/post.schema";
 import type { UploadInput } from "../storage/upload";
 import type { PaginatedResult } from "../repositories/base.repository";
-import type { Post } from "../model/post.model.schema";
+import type { Post } from "../validation/post.schema";
 import type { PageCursor } from "../repositories/base.repository";
 
 type PaginatedResultWithCount = Omit<PaginatedResult<Post>, "meta"> & {

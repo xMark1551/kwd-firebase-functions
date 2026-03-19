@@ -15,7 +15,7 @@ import { NotFoundError } from "../errors";
 
 import { TRANSPARENCY_FOLDER } from "../const/collection.name";
 
-import type { AuthedUser } from "../model/auth.model.schema";
+import type { AuthedUser } from "../validation/auth.schema";
 import type { UploadInput } from "../storage/upload";
 import type {
   CreateTransparency,
@@ -26,7 +26,7 @@ import type {
   TransparencyFilter,
   GetTransparencyFolderWithFilters,
 } from "../validation/transparency.schema";
-import type { TransparencySeal } from "../model/transparency.model.schema";
+import type { TransparencySeal } from "../validation/transparency.schema";
 import type { PaginatedResult } from "../repositories/base.repository";
 
 type PaginatedResultWithCount = Omit<PaginatedResult<TransparencySeal>, "meta"> & {
@@ -82,7 +82,7 @@ export class TransparencyService {
     return;
   }
 
-  async createTransparencyFolder(user: AuthedUser, data: CreateTransparencyFolder) {
+  async createTransparencyFolder(data: CreateTransparencyFolder) {
     const result = await serviceHandler("CREATE_TRANSPARENCY_FOLDER", () => this.folderRepo.create(data));
 
     await this.invalidateTransparencyCache();

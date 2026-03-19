@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import { postSchema } from "../model/post.model.schema";
 import { paginationSchema } from "./pagination.schema";
 
 const categorySchema = z.enum([
@@ -15,20 +14,6 @@ const categorySchema = z.enum([
 
 const statusSchema = z.enum(["Published", "Draft"]);
 
-export type Post = z.infer<typeof postSchema>;
-
-export const cursorSchema = z.object({
-  page: z.coerce.number().int().min(1),
-
-  firstCreatedAt: z.coerce.number(),
-  firstId: z.string(),
-
-  lastCreatedAt: z.coerce.number(),
-  lastId: z.string(),
-});
-
-export type Cursor = z.infer<typeof cursorSchema>;
-
 export const postFilterSchema = z.object({
   category: categorySchema.optional(),
   status: statusSchema.optional(),
@@ -36,8 +21,6 @@ export const postFilterSchema = z.object({
   month: z.coerce.number().int().min(1).max(12).optional(),
   isFeatured: z.coerce.boolean().optional(),
 });
-
-export type PostFilter = z.infer<typeof postFilterSchema>;
 
 export const createPostSchema = z.object({
   authorId: z.string().optional(),
@@ -49,17 +32,32 @@ export const createPostSchema = z.object({
   isFeatured: z.boolean().default(false),
 });
 
-export type CreatePost = z.infer<typeof createPostSchema>;
+export const postSchema = z.object({
+  id: z.string(),
+  authorId: z.string(),
+  title: z.string().nonempty(),
+  description: z.string().nonempty(),
+  category: categorySchema,
+  status: statusSchema,
+  files: z.array(z.string()).default([]),
+  isFeatured: z.boolean(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+});
 
 export const patchPostSchema = postSchema
   .extend({
     files: z.array(z.string()).transform((arr) => arr.filter((v) => v !== "")), // remove empty strings
   })
   .partial();
-export type PatchPost = z.infer<typeof patchPostSchema>;
 
 export const getPaginatedPostSchema = z.object({
   ...paginationSchema.shape,
   filters: postFilterSchema.optional(),
 });
+
+export type PostFilter = z.infer<typeof postFilterSchema>;
+export type CreatePost = z.infer<typeof createPostSchema>;
+export type PatchPost = z.infer<typeof patchPostSchema>;
 export type GetPaginatedPostQuery = z.infer<typeof getPaginatedPostSchema>;
+export type Post = z.infer<typeof postSchema>;

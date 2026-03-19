@@ -3,7 +3,7 @@ import { FirestoreRepository } from "./base.repository";
 
 import { TRANSPARENCY_SEAL_COLLECTION } from "../const/collection.name";
 
-import { TransparencySeal } from "@/model/transparency.model.schema";
+import { TransparencySeal } from "../validation/transparency.schema";
 
 export class TransparencyRepository extends FirestoreRepository<TransparencySeal> {
   constructor(db: Firestore) {

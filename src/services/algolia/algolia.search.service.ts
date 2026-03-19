@@ -3,7 +3,7 @@ import { createAlgoliaClient } from "./algolia.client";
 import { generatePath } from "../../utils/generatePath";
 
 import type { SearchIndex } from "algoliasearch";
-import type { AuthedUser } from "../../model/auth.model.schema";
+import type { AuthedUser } from "../../validation/auth.schema";
 
 const client = createAlgoliaClient(process.env.ALGOLIA_ADMIN_KEY!);
 

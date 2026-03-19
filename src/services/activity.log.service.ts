@@ -12,9 +12,9 @@ import type {
   CreateActivityLog,
   Target,
   ActivityLogFilter,
+  ActivityLog,
 } from "../validation/activity-log.schema";
 import type { PaginatedResult } from "../repositories/base.repository";
-import type { ActivityLog } from "../model/activity.log.model.schema";
 
 type PaginatedResultWithCount = Omit<PaginatedResult<ActivityLog>, "meta"> & {
   meta: { totalResults: number; totalPages: number };

@@ -11,8 +11,8 @@ export type WithId<T> = T & { id: string };
 
 // Store timestamps as Firestore Timestamp in DB
 export type BaseDoc = {
-  createdAt?: Timestamp;
-  updatedAt?: Timestamp;
+  createdAt?: Timestamp | number;
+  updatedAt?: Timestamp | number;
 };
 
 export type WhereFilter = {

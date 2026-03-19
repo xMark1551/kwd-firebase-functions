@@ -10,7 +10,7 @@ export const logSettingsSchema = z.object({
   nextRun: z.string().optional(),
 });
 
-export type LogSettings = z.infer<typeof logSettingsSchema>;
-
 export const patchLogSettingsSchema = logSettingsSchema.partial();
+
+export type LogSettings = z.infer<typeof logSettingsSchema>;
 export type PatchLogSettings = z.infer<typeof patchLogSettingsSchema>;

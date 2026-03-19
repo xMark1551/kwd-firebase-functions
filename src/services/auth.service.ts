@@ -4,7 +4,7 @@ import { logService, LogService } from "./logger.service";
 import { activityLogService } from "./activity.log.service";
 
 import type { LoginInput } from "../validation/auth.schema";
-import type { User } from "../model/auth.model.schema";
+import type { User } from "../validation/auth.schema";
 
 export class AuthService {
   constructor(private readonly logger: LogService) {}

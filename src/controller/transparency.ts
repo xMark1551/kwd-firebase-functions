@@ -15,10 +15,9 @@ export const createTransparencyController = asyncHandler(async (req: Request, re
 });
 
 export const createTransparencyFolderController = asyncHandler(async (req: Request, res: Response) => {
-  const user = req.user;
   const data = req.body;
 
-  const response = await transparencyService.createTransparencyFolder(user, data);
+  const response = await transparencyService.createTransparencyFolder(data);
 
   ok(res, response, "Transparency folder created");
 });

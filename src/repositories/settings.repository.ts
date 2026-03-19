@@ -2,7 +2,7 @@
 import { Firestore, Timestamp } from "firebase-admin/firestore";
 import { FirestoreRepository } from "./base.repository";
 
-import { LogCleanupSettings } from "../model/setting.model.schema";
+import { LogCleanupSettings } from "../validation/log-cleanup-settings.schema";
 
 const SETTINGS_COLLECTION = "settings";
 const LOG_CLEANUP_SETTINGS_DOC = "log_cleanup";

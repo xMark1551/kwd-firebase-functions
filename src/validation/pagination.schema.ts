@@ -11,10 +11,11 @@ export const cursorSchema = z.object({
   lastId: z.string(),
 });
 
-export type Cursor = z.infer<typeof cursorSchema>;
-
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1, "Page must be at least 1"),
   pageSize: z.coerce.number().int().min(1).max(50).default(10),
   cursor: cursorSchema.optional(),
 });
+
+export type Cursor = z.infer<typeof cursorSchema>;
+export type Pagination = z.infer<typeof paginationSchema>;

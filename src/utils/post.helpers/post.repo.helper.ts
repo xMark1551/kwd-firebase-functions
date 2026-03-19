@@ -1,5 +1,5 @@
 import { getMonthKey } from "../date.converter";
-import type { Post } from "../../model/post.model.schema";
+import type { Post } from "../../validation/post.schema";
 
 export function bulkHelper(docs: { data: Post }[]) {
   const removedImagesSet: string[] = []; // collect all images to delete (published or not)

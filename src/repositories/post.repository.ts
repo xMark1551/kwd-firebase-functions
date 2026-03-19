@@ -14,8 +14,9 @@ import {
   NEWS_ARCHIVES_COLLECTION,
 } from "../const/collection.name";
 
-import { Post, postSchema } from "../model/post.model.schema";
-import type { CreatePost, PatchPost } from "../validation/post.schema";
+import { postSchema } from "../validation/post.schema";
+
+import type { CreatePost, PatchPost, Post } from "../validation/post.schema";
 import type { PostArchiveCountByhMonth, PostCategoryCount } from "../types/post.types";
 
 export class NewsRepository extends FirestoreRepository<Post> {

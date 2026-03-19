@@ -3,7 +3,7 @@ import { getAuth } from "firebase-admin/auth";
 
 import { logService } from "../services/logger.service";
 import { UnauthorizedError, ForbiddenError } from "../errors";
-import type { AuthedUser } from "../model/auth.model.schema";
+import type { AuthedUser } from "../validation/auth.schema";
 
 // export type HttpHandler = (req: Request, res: Response, user: AuthedUser) => Promise<void>;
 

@@ -5,7 +5,7 @@ import { INQUIRY_COLLECTION } from "../const/collection.name";
 
 import { Timestamp } from "firebase-admin/firestore";
 
-import { inquirySchema, Inquiry } from "../model/inquiry.model.schema";
+import { inquirySchema, Inquiry } from "../validation/inquiry.schema";
 
 export class InquiryRepository extends FirestoreRepository<Inquiry> {
   constructor(db: Firestore) {

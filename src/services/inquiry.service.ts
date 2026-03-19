@@ -16,8 +16,7 @@ import { NotFoundError } from "../errors";
 import { INQUIRY_FOLDER } from "../const/collection.name";
 
 import type { PaginatedResult } from "../repositories/base.repository";
-import type { GetPaginatedInquiries } from "@/validation/inquiry.schema";
-import type { Inquiry } from "../model/inquiry.model.schema";
+import type { GetPaginatedInquiries, Inquiry } from "@/validation/inquiry.schema";
 import type { UploadInput } from "../storage/upload";
 
 type PaginatedResultWithCount = Omit<PaginatedResult<Inquiry>, "meta"> & {
