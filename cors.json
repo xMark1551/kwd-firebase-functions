@@ -1,6 +1,11 @@
 [
   {
-    "origin": ["http://localhost:5173", "https://kwdkldn.netlify.app"],
+    "origin": [
+      "http://localhost:5173",
+      "https://kwdkldn.netlify.app",
+      "https://kwdldn.gov.ph",
+      "https://www.kwdldn.gov.ph"
+    ],
     "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
     "maxAgeSeconds": 3600,
     "responseHeader": ["Content-Type", "Authorization"]

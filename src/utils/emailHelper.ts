@@ -10,11 +10,19 @@ interface InquiryEmailParams {
   attachmentUrl?: string | null;
 }
 
+const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
+const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
+const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY;
+
+if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY) {
+  throw new Error("Missing EmailJS credentials");
+}
+
 export async function sendInquiryEmail(params: InquiryEmailParams) {
   const payload = {
-    service_id: process.env.EMAILJS_SERVICE_ID!,
-    template_id: process.env.EMAILJS_TEMPLATE_ID!,
-    user_id: process.env.EMAILJS_PRIVATE_KEY!, // 🔒 private key
+    service_id: EMAILJS_SERVICE_ID,
+    template_id: EMAILJS_TEMPLATE_ID,
+    user_id: EMAILJS_PUBLIC_KEY, // 🔒 private key
     template_params: {
       to_email: params.to || process.env.ADMIN_EMAIL,
       from_name: params.name,

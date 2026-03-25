@@ -49,7 +49,7 @@ export const requireAdmin: RequestHandler = async (req, res, next) => {
       }),
     );
 
-  if (user.admin !== true) return next(new ForbiddenError("Admin access requiredss"));
+  if (user.admin !== true) return next(new ForbiddenError("Admin access required"));
 
   next();
 };
